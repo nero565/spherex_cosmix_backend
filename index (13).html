@@ -1,0 +1,174 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cosmic Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070a12;--p:#0d1322;--l:#1f2b4a;--c:#5ee7ff;--a:#ffb347;--t:#dbe6ff;--m:#8193bd}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--t);font:15px/1.5 "Chakra Petch",system-ui,sans-serif}
+header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--l)}
+h1{margin:0;font-size:22px;flex:1;min-width:180px}
+button,input,select{font:inherit;color:var(--t);background:var(--p);border:1px solid var(--l);border-radius:4px;padding:6px 10px}
+button{cursor:pointer}button:hover{border-color:var(--c)}:focus-visible{outline:2px solid var(--c)}
+.hunt{background:var(--c);color:#031018;font-weight:700;border:0}
+main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;padding:18px 20px}
+@media(max-width:900px){main{grid-template-columns:1fr}}
+#cv{display:block;width:100%;max-height:72vh;aspect-ratio:1;object-fit:contain;background:#000;image-rendering:pixelated;border:1px solid var(--l)}
+body.hunter #cv{cursor:crosshair;border-color:var(--c)}
+.card{background:var(--p);border:1px solid var(--l);border-radius:6px;padding:12px;margin-bottom:14px}
+h2{font-size:14px;margin:0 0 8px;color:var(--c);font-weight:500}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+.m{color:var(--m);font-size:13px}#msg{color:var(--a);min-height:22px}
+body.hunter .pro{display:none}body:not(.hunter) .game{display:none}
+body.hunter main{grid-template-columns:minmax(0,640px);justify-content:center}
+#slider{width:100%}
+</style>
+<header><h1>Cosmic Tracker</h1>
+ <input id="user" size="12" aria-label="Your name" placeholder="Your name">
+ <button class="hunt" id="hunt">Start hunting mode</button></header>
+<main>
+<div>
+ <div id="msg"></div>
+ <canvas id="cv"></canvas>
+ <div class="game card" style="margin-top:12px"><h2 id="pt">Patch 1</h2>
+  <div class="m">Click anything that jumps, moves or flickers between frames.</div>
+  <div class="row"><button id="none">Nothing here, next patch</button><button id="next">Skip</button></div><div id="fb" class="m"></div></div>
+ <div class="pro">
+  <input id="slider" type="range" min="0" max="0" value="0" style="margin-top:10px">
+  <div class="row"><button id="prev">Previous</button><button id="pp">Pause</button><button id="nx">Next</button>
+   <label class="m">Rate <input id="rate" type="range" min="1" max="12" value="3"></label><span class="m" id="info"></span></div>
+ </div>
+</div>
+<aside>
+ <div class="card pro"><h2>Position</h2>
+  <div class="row"><input id="ra" size="11" value="133.786245" aria-label="RA"><input id="dec" size="11" value="-7.244372" aria-label="Dec"><input id="size" size="5" value="0.1" aria-label="Size"></div>
+  <div class="row"><button id="go">Load images</button><select id="det" aria-label="Detector"></select></div>
+  <div class="row" id="pre"></div></div>
+ <div class="card"><h2>AI co-pilot</h2>
+  <label class="m"><input type="checkbox" id="ai" checked> Show AI hints</label>
+  <div id="aitxt" class="m" style="margin-top:6px">Load a patch to analyse it.</div></div>
+ <div class="card pro"><h2>Display</h2>
+  <div class="row"><select id="cm"><option value="gray">Grayscale</option><option value="heat">Heat</option></select>
+  <label class="m"><input type="checkbox" id="inv"> Invert</label></div>
+  <div class="row"><button id="pass">Generate discovery passport</button></div>
+  <div id="aladin" style="height:200px;background:#000"></div></div>
+ <div class="card" id="lb"></div>
+</aside></main>
+<footer style="padding:0 20px 24px;color:#8193bd;font-size:11.5px">This publication makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. Data served by NASA/IPAC IRSA.</footer>
+<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js"></script>
+<script>
+const $=i=>document.getElementById(i),SC=8,SIA="https://irsa.ipac.caltech.edu/SIA",px=u=>"/proxy?u="+encodeURIComponent(u);
+const PRE=[["WISE 0855",133.786245,-7.244372,.1],["Barnard's Star",269.446,4.768,.2],["Epsilon Indi",330.84,-56.79,.1],["RW Aurigae",76.957,30.401,.05],["R Draconis",248.173,66.755,.05]];
+let ALL=[],FR=[],idx=0,timer=null,AI={cands:[],track:null,conf:0},patch=0,MK=[],aladin=null,hunting=false;
+const esc=s=>{const d=document.createElement("div");d.textContent=s;return d.innerHTML};
+const say=t=>$("msg").textContent=t, day=m=>new Date((m-40587)*864e5).toISOString().slice(0,10);
+$("pre").innerHTML=PRE.map((p,i)=>`<button data-i="${i}">${p[0]}</button>`).join("");
+$("pre").onclick=e=>{if(e.target.dataset.i!=null){patch=+e.target.dataset.i;setP()}};
+$("user").value=localStorage.getItem("ct_user")||"hunter"+Math.floor(Math.random()*900+100);
+$("user").onchange=()=>localStorage.setItem("ct_user",$("user").value);
+try{A.init.then(()=>{aladin=A.aladin("#aladin",{survey:"P/DSS2/color",fov:.4,showZoomControl:false,showFullscreenControl:false})})}catch(e){}
+
+/* ---------- data: IRSA SIA through the proxy, FITS parsing in the browser ---------- */
+function parseVO(x){const d=new DOMParser().parseFromString(x,"text/xml"),f=[...d.getElementsByTagName("FIELD")].map(e=>e.getAttribute("name"));
+ return[...d.getElementsByTagName("TR")].map(tr=>{const t=[...tr.getElementsByTagName("TD")].map(e=>e.textContent.trim()),u=t[f.indexOf("access_url")]||"";
+  return{url:u,mjd:parseFloat(t[f.indexOf("t_min")]),det:(u.match(/_2D(\d)_/)||[])[1]||"?"}}).filter(r=>r.url&&isFinite(r.mjd))}
+function readFits(buf){const dv=new DataView(buf),tx=new TextDecoder();let off=0;
+ while(off+2880<=buf.byteLength){const h={};let end=false;
+  while(!end&&off+2880<=buf.byteLength){const b=tx.decode(new Uint8Array(buf,off,2880));off+=2880;
+   for(let i=0;i<36;i++){const c=b.substr(i*80,80),k=c.slice(0,8).trim();if(k==="END"){end=true;break}
+    if(c[8]==="="){const v=c.slice(10).split("/")[0].trim();h[k]=v[0]==="'"?v.replace(/'/g,"").trim():parseFloat(v)}}}
+  let n=h.NAXIS?1:0;for(let i=1;i<=(h.NAXIS||0);i++)n*=h["NAXIS"+i];
+  if(h.EXTNAME==="IMAGE"&&n&&h.BITPIX===-32&&h.NAXIS===2){const d=new Float32Array(n);for(let i=0;i<n;i++)d[i]=dv.getFloat32(off+i*4,false);
+   const v=Array.from(d).filter(isFinite).sort((a,b)=>a-b);if(v.length<n/2)return null;
+   const med=v[v.length>>1],mad=v.map(x=>Math.abs(x-med)).sort((a,b)=>a-b)[v.length>>1]||1;
+   return{w:h.NAXIS1,h:h.NAXIS2,hd:h,z:d.map(x=>isFinite(x)?(x-med)/(1.4826*mad):0)}}
+  off+=Math.ceil(Math.abs(h.BITPIX||0)/8*n/2880)*2880}return null}
+
+async function load(){
+ stop();const ra=+$("ra").value,dec=+$("dec").value,size=+$("size").value;
+ if(!isFinite(ra)||!isFinite(dec)||Math.abs(dec)>90||!(size>0)){say("Enter valid coordinates (Dec between -90 and 90).");return}
+ sync();MK=[];say("Searching the NASA archive...");let rows=[];
+ try{for(const col of(await(await fetch("/api/collections")).json()).collections){
+   rows=parseVO(await(await fetch(px(`${SIA}?COLLECTION=${col}&POS=circle+${ra}+${dec}+0.0003`))).text());if(rows.length)break}}
+ catch(e){say("Could not reach NASA through the server. Open /test to diagnose.");return}
+ if(!rows.length){say("No SPHEREx images cover this spot. Try another patch.");return}
+ rows.sort((a,b)=>a.mjd-b.mjd);if(rows.length>24)rows=Array.from({length:24},(_,i)=>rows[Math.round(i*(rows.length-1)/23)]);
+ say(`Downloading ${rows.length} images...`);const out=[];
+ for(let i=0;i<rows.length;i+=4)await Promise.all(rows.slice(i,i+4).map(async r=>{try{
+  const f=readFits(await(await fetch(px(`${r.url}${r.url.includes("?")?"&":"?"}center=${ra},${dec}d&size=${size}`))).arrayBuffer());
+  if(f){f.mjd=r.mjd;f.det=r.det;out.push(f)}}catch(e){}}));
+ if(!out.length){say("Images were found but none were usable here (too close to a detector edge). Try a bigger size.");return}
+ ALL=out.sort((a,b)=>a.mjd-b.mjd);
+ const ds=[...new Set(ALL.map(f=>f.det))].sort();$("det").innerHTML='<option value="all">All detectors</option>'+ds.map(d=>`<option>${d}</option>`).join("");
+ const q=new URLSearchParams(location.search).get("det");if(q&&ds.includes(q))$("det").value=q;
+ try{aladin&&aladin.gotoRaDec(ra,dec)}catch(e){}
+ say("");filt();play()}
+function filt(){const d=$("det").value;FR=d==="all"?ALL:ALL.filter(f=>f.det===d);$("slider").max=Math.max(0,FR.length-1);detect();show(0);sync()}
+
+/* ---------- AI co-pilot: unmatched sources, then a linear motion fit across frames ---------- */
+function peaks(f){const{w,h,z}=f,o=[];for(let y=1;y<h-1;y++)for(let x=1;x<w-1;x++){const v=z[y*w+x];if(v<6)continue;let ok=true;
+ for(let j=-1;j<2&&ok;j++)for(let i=-1;i<2;i++)if((i||j)&&z[(y+j)*w+x+i]>v){ok=false;break}if(ok)o.push({x,y,v})}
+ return o.sort((a,b)=>b.v-a.v).slice(0,40)}
+function detect(){const all=[];FR.forEach((f,k)=>{f.pk=peaks(f);f.pk.forEach(p=>all.push({...p,k,t:f.mjd}))});
+ const need=Math.max(2,Math.ceil(FR.length*.3)),L=all.filter(p=>FR.filter((g,j)=>j!==p.k&&g.pk.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<=1.5)).length<need).slice(0,80);
+ let best=null;for(const a of L)for(const b of L){if(b.t<=a.t||b.k===a.k)continue;const vx=(b.x-a.x)/(b.t-a.t),vy=(b.y-a.y)/(b.t-a.t);
+  const inl=L.filter(p=>Math.hypot(a.x+vx*(p.t-a.t)-p.x,a.y+vy*(p.t-a.t)-p.y)<=1.5),n=new Set(inl.map(p=>p.k)).size;
+  if(n>=3&&(!best||n>best.n)){const ts=inl.map(p=>p.t);best={n,vx,vy,inl,disp:Math.hypot(vx,vy)*(Math.max(...ts)-Math.min(...ts))}}}
+ AI={cands:L,track:best,conf:best?Math.min(99,Math.round(100*best.n/Math.max(FR.length,1))):0};
+ $("aitxt").textContent=best?`${best.disp>=2?"Possible moving object":"Possible brightness change"} in ${best.n} of ${FR.length} frames. Confidence ${AI.conf}%. This is a candidate, not a confirmed discovery.`
+  :`No consistent motion found (${L.length} unmatched sources). Each frame samples a different wavelength, so faint stars can appear and vanish.`}
+
+/* ---------- viewer ---------- */
+function circ(x,p,col,dash){x.strokeStyle=col;x.lineWidth=2;x.setLineDash(dash?[5,4]:[]);x.beginPath();x.arc(p[0],p[1],SC*2,0,7);x.stroke()}
+function render(){if(!FR.length)return;const f=FR[idx],c=$("cv"),x=c.getContext("2d"),t=document.createElement("canvas");
+ c.width=f.w*SC;c.height=f.h*SC;t.width=f.w;t.height=f.h;const tx=t.getContext("2d"),im=tx.createImageData(f.w,f.h),inv=$("inv").checked,hot=$("cm").value==="heat";
+ for(let j=0;j<f.h;j++)for(let i=0;i<f.w;i++){let v=Math.min(1,Math.asinh(Math.max(f.z[j*f.w+i],0)/2)/Math.asinh(6));if(inv)v=1-v;const o=((f.h-1-j)*f.w+i)*4,g=v*255;
+  im.data[o]=hot?Math.min(255,g*3):g;im.data[o+1]=hot?Math.max(0,Math.min(255,g*3-255)):g;im.data[o+2]=hot?Math.max(0,Math.min(255,g*3-510)):g;im.data[o+3]=255}
+ tx.putImageData(im,0,0);x.imageSmoothingEnabled=false;x.drawImage(t,0,0,c.width,c.height);
+ const P=p=>[(p.x+.5)*SC,(f.h-p.y-.5)*SC];
+ if($("ai").checked){const tr=AI.track;if(tr){tr.inl.filter(p=>p.k===idx).forEach(p=>circ(x,P(p),"#5ee7ff"));
+   const a=tr.inl.reduce((m,p)=>p.t<m.t?p:m),b=tr.inl.reduce((m,p)=>p.t>m.t?p:m),e=(b.t-a.t)*.5,s=P(a),d=P({x:b.x+tr.vx*e,y:b.y+tr.vy*e});
+   x.setLineDash([]);x.strokeStyle="#5ee7ff";x.fillStyle="#5ee7ff";x.beginPath();x.moveTo(...s);x.lineTo(...d);x.stroke();
+   const an=Math.atan2(d[1]-s[1],d[0]-s[0]);x.beginPath();x.moveTo(...d);x.lineTo(d[0]-14*Math.cos(an-.4),d[1]-14*Math.sin(an-.4));x.lineTo(d[0]-14*Math.cos(an+.4),d[1]-14*Math.sin(an+.4));x.fill()}
+  else AI.cands.filter(p=>p.k===idx).forEach(p=>circ(x,P(p),"#ffb347",true))}
+ MK.forEach(m=>circ(x,[m.u*SC,(f.h-m.v)*SC],"#7dff9b"));
+ $("info").textContent=`Frame ${idx+1} of ${FR.length}, ${day(f.mjd)}, detector ${f.det}`}
+function show(k){idx=k;$("slider").value=k;render()}
+const step=d=>FR.length&&show((idx+d+FR.length)%FR.length);
+function play(){stop();timer=setInterval(()=>step(1),1600/(1+$("rate").value*1.6));$("pp").textContent="Pause"}
+function stop(){clearInterval(timer);timer=null;$("pp").textContent="Play"}
+
+/* ---------- hunter mode, reports, leaderboard ---------- */
+function sky(f,u,v){const h=f.hd,C={ra:+$("ra").value,dec:+$("dec").value,s:+$("size").value};
+ if(h.CRPIX1!=null&&h.CRVAL1!=null){const x=u+.5-h.CRPIX1,y=v+.5-h.CRPIX2,a=h.CD1_1??h.CDELT1,b=h.CD1_2??0,c=h.CD2_1??0,d=h.CD2_2??h.CDELT2;
+  const r=h.CRVAL1+(a*x+b*y)/Math.cos(h.CRVAL2*Math.PI/180),e=h.CRVAL2+c*x+d*y;if(isFinite(r)&&isFinite(e))return{ra:r,dec:e}}
+ return{ra:C.ra+(u-f.w/2)*C.s/f.w/Math.cos(C.dec*Math.PI/180),dec:C.dec+(v-f.h/2)*C.s/f.h}}
+$("cv").onclick=async e=>{if(!hunting||!FR.length)return;const f=FR[idx],r=e.target.getBoundingClientRect(),
+ u=(e.clientX-r.left)/r.width*f.w,v=f.h-(e.clientY-r.top)/r.height*f.h,s=sky(f,u,v);MK.push({u,v});render();
+ try{const j=await(await fetch("/api/report",{method:"POST",headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({user:$("user").value,ra:s.ra,dec:s.dec,patch:PRE[patch][0]})})).json();
+  $("fb").textContent=j.verified?"Community verified candidate! Several players marked this spot.":`Marked. ${j.agree} player${j.agree>1?"s":""} marked this spot.`;board()}
+ catch(err){$("fb").textContent="Could not save your mark."}};
+function setP(){const p=PRE[patch];$("ra").value=p[1];$("dec").value=p[2];$("size").value=p[3];$("pt").textContent=`Patch ${patch+1} of ${PRE.length}`;$("fb").textContent="";load()}
+$("none").onclick=$("next").onclick=()=>{patch=(patch+1)%PRE.length;setP()};
+$("hunt").onclick=()=>{hunting=!hunting;document.body.classList.toggle("hunter",hunting);$("hunt").textContent=hunting?"Back to scientist mode":"Start hunting mode";
+ $("ai").checked=!hunting;if(hunting)setP();else{sync();render()}};
+async function board(){try{const j=await(await fetch("/api/leaderboard")).json();
+ $("lb").innerHTML="<h2>Community verified candidates</h2>"+(j.verified.length?j.verified.map(v=>`<div class="m"><a style="color:var(--a)" href="?ra=${v.ra}&dec=${v.dec}&size=0.05">${v.ra}, ${v.dec}</a>, ${v.votes} players</div>`).join(""):'<div class="m">None yet. A spot is verified when 3 players mark it.</div>')
+  +'<h2 style="margin-top:12px">Top hunters</h2>'+(j.users.map((u,i)=>`<div class="m">${i+1}. ${esc(u.user)}: ${u.score} pts</div>`).join("")||'<div class="m">No reports yet.</div>')}catch(e){$("lb").innerHTML='<div class="m">Leaderboard unavailable.</div>'}}
+
+/* ---------- passport + URL state ---------- */
+$("pass").onclick=()=>{if(!FR.length)return;const c=document.createElement("canvas");c.width=900;c.height=470;const x=c.getContext("2d");
+ x.fillStyle="#070a12";x.fillRect(0,0,900,470);x.fillStyle="#5ee7ff";x.font="700 26px 'Chakra Petch',sans-serif";x.fillText("Discovery Passport",30,46);
+ x.drawImage($("cv"),30,70,370,370);x.fillStyle="#dbe6ff";x.font="16px 'Chakra Petch',sans-serif";const t=AI.track,L=[
+  `Position: RA ${(+$("ra").value).toFixed(5)}, Dec ${(+$("dec").value).toFixed(5)}`,`Frames: ${FR.length} (${day(FR[0].mjd)} to ${day(FR[FR.length-1].mjd)})`,`Detector: ${$("det").value}`,
+  `AI result: ${t?(t.disp>=2?"possible moving object":"possible brightness change"):"no consistent motion"}`,`AI confidence: ${AI.conf}%`,"Status: candidate, not confirmed","",
+  "Data: NASA SPHEREx via IRSA"];L.forEach((s,i)=>x.fillText(s,430,100+i*30));
+ x.fillStyle="#8193bd";x.font="12px sans-serif";x.fillText(location.href.slice(0,100),30,460);
+ const a=document.createElement("a");a.href=c.toDataURL("image/png");a.download="discovery-passport.png";a.click()};
+function sync(){history.replaceState(null,"","?"+new URLSearchParams({ra:$("ra").value,dec:$("dec").value,size:$("size").value,det:$("det").value||"all",inv:+$("inv").checked,cm:$("cm").value,mode:hunting?"hunt":"pro"}))}
+$("go").onclick=load;$("pp").onclick=()=>timer?stop():play();$("prev").onclick=()=>{stop();step(-1)};$("nx").onclick=()=>{stop();step(1)};
+$("slider").oninput=e=>{stop();show(+e.target.value)};$("rate").oninput=()=>timer&&play();$("det").onchange=filt;
+["inv","cm","ai"].forEach(i=>$(i).addEventListener("input",()=>{render();sync()}));
+const Q=new URLSearchParams(location.search);board();
+if(Q.get("ra")){$("ra").value=Q.get("ra");$("dec").value=Q.get("dec");if(Q.get("size"))$("size").value=Q.get("size");$("inv").checked=Q.get("inv")==="1";if(Q.get("cm"))$("cm").value=Q.get("cm");
+ if(Q.get("mode")==="hunt")$("hunt").click();else load()}
+</script></html>
