@@ -6,92 +6,255 @@
 <meta name="description" content="Search any place in the sky and blink real NASA SPHEREx observations to spot moving and changing objects.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Caveat:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--paper:#dde1e4;--panel:#eef0f1;--ink:#10151a;--ink2:#4a545e;--line:#b9c0c6;--plate:#08090a;--accent:#1c3fd0;--warn:#a4290f;
---font:"IBM Plex Sans Arabic","Segoe UI",system-ui,sans-serif}
+:root{--bg:#070813;--panel:rgba(255,255,255,.04);--panel2:rgba(255,255,255,.08);--ink:#fff;--ink2:#a9b0c4;--line:rgba(255,255,255,.12);--line2:rgba(255,255,255,.24);
+--accent:#b9a0f5;--accent-ink:#150d2e;--warm:#ff9a6a;--r:18px;--blue:#2b3a9a;--sky:#8fb4ff;--plate:#000;--warn:#ffb199;
+--font:"Plus Jakarta Sans","IBM Plex Sans Arabic","Helvetica Neue",Arial,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+--ease:cubic-bezier(.2,.7,.2,1)}
 *{box-sizing:border-box}
-body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.5 var(--font)}
+html{scroll-behavior:smooth}
+body{margin:0;background:linear-gradient(180deg,#070813 0,#0b0d22 55%,#070813 100%);color:var(--ink);font:400 15px/1.55 var(--font)}
 button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 36px;padding:18px 28px 14px;border-bottom:1px solid var(--line)}
-h1{margin:0;font-weight:700;font-size:26px;letter-spacing:-.01em}
-.tag{color:var(--ink2);font-size:14px;flex:1 1 260px;margin:0}
-nav{display:flex;flex-wrap:wrap;gap:2px 22px}
-nav button,.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:4px 0;cursor:pointer;font-weight:500;color:var(--ink2)}
-nav button:hover,.tabs button:hover{color:var(--ink)}
-nav button.on,.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
-.tabs{display:flex;gap:26px;border-bottom:1px solid var(--line);margin-bottom:14px}
-.tabs button{padding:6px 0}
-main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;padding:24px 28px 40px;max-width:1280px;margin:0 auto}
-@media(max-width:900px){main{grid-template-columns:1fr;padding:16px}}
-.pane{display:none}.pane.on{display:block}
-#stat{min-height:22px;color:var(--ink2);font-size:13px;margin:0 0 8px}
-#stat.err{color:var(--warn)}
-#aladin{height:min(70vh,640px);background:#000;border-radius:2px}
-.jr{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;counter-reset:s}.jr button{counter-increment:s;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 14px;cursor:pointer;font-weight:500}.jr button:before{content:counter(s) ". "}.jr button.on{background:var(--ink);color:var(--paper)}
-.era{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}.era button{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:6px 10px;cursor:pointer;text-align:start;line-height:1.25}.era button b{display:block;font-size:12px;font-variant-numeric:tabular-nums}.era button span{font-size:12px;color:var(--ink2)}.era button.on{border-color:var(--accent);background:#fff}.era button.sx{background:var(--ink);color:var(--paper)}.era button.sx span{color:#aab3bc}
-.plate{position:relative;aspect-ratio:1/1;max-height:76vh;width:100%;background:var(--plate);border-radius:2px;display:grid;place-items:center;overflow:hidden}
+:focus-visible{outline:2px solid var(--sky);outline-offset:3px}
+a{color:var(--sky)}
+::selection{background:var(--accent);color:#fff}
+
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 28px;border-bottom:1px solid var(--line);background:#000}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;letter-spacing:.14em;font-size:13px;text-transform:uppercase}
+.brand i{display:block;width:26px;height:26px;border-radius:50%;background:var(--blue);position:relative;overflow:hidden}
+.brand i:after{content:"";position:absolute;left:-4px;top:11px;width:40px;height:3px;background:var(--accent);transform:rotate(-24deg)}
+.top small{font:400 11px var(--mono);letter-spacing:.08em;color:var(--ink2);text-transform:uppercase}
+
+.hero{position:relative;min-height:min(78vh,680px);display:flex;align-items:flex-end;overflow:hidden;border-bottom:1px solid var(--line)}
+#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
+.orbit{position:absolute;right:-12vw;top:50%;width:min(70vw,760px);aspect-ratio:1;transform:translateY(-50%);pointer-events:none}
+.orbit b{position:absolute;inset:0;border:1px solid rgba(255,255,255,.14);border-radius:50%;animation:spin 90s linear infinite}
+.orbit b:nth-child(2){inset:12%;border-color:rgba(255,255,255,.1);animation-duration:140s;animation-direction:reverse}
+.orbit b:nth-child(3){inset:26%;border-color:rgba(185,160,245,.35);animation-duration:60s}
+.orbit b:nth-child(3):after,.orbit b:nth-child(1):after{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--accent)}
+.orbit b:nth-child(1):after{background:#fff;width:6px;height:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.hero-in{position:relative;z-index:1;width:100%;max-width:1280px;margin:0 auto;padding:60px 28px 38px}
+.eyebrow{font:500 12px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent);margin:0 0 16px}
+h1{margin:0;font-weight:800;font-size:clamp(44px,8.5vw,112px);line-height:.92;letter-spacing:-.025em;text-transform:uppercase}
+h1 span{display:inline-block;opacity:0;transform:translateY(40px);animation:rise .9s var(--ease) forwards}
+h1 span:nth-child(2){animation-delay:.12s}
+.lead{max-width:560px;color:#d3d9e0;font-size:clamp(16px,1.6vw,19px);margin:22px 0 0;opacity:0;animation:rise .9s var(--ease) .35s forwards}
+.cta{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;margin-top:28px;opacity:0;animation:rise .9s var(--ease) .5s forwards}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:34px;opacity:0;animation:rise .9s var(--ease) .65s forwards}
+@keyframes rise{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:var(--accent);color:#fff;border:0;border-radius:999px;padding:11px 24px;cursor:pointer;font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;transition:background .2s,transform .2s var(--ease)}
+.btn:hover{background:#cdbbff;transform:translateY(-1px)}
+.btn:active{transform:none}
+.btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--ink)}
+.btn.ghost:hover{background:var(--panel2);border-color:#fff}
+.btn.arrow:after{content:"→";transition:transform .25s var(--ease)}
+.btn.arrow:hover:after{transform:translateX(5px)}
+nav button{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:6px 15px;cursor:pointer;font-size:13px;font-weight:500;color:#e6ebf0;transition:background .2s,border-color .2s,color .2s}
+nav button:hover{border-color:#fff;background:rgba(255,255,255,.08)}
+nav button.on{background:#fff;color:#000;border-color:#fff}
+#ubtn{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+
+.stepper{position:sticky;top:0;z-index:20;background:rgba(0,0,0,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(6px)}
+.jr{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));max-width:1280px;margin:0 auto;padding:0 28px;counter-reset:s}
+.jr button{counter-increment:s;background:none;border:0;border-right:1px solid var(--line);padding:13px 14px 13px 0;margin-right:14px;cursor:pointer;text-align:start;display:flex;align-items:center;gap:11px;font-size:13px;font-weight:600;color:var(--ink2);transition:color .25s}
+.jr button:last-child{border:0;margin:0}
+.jr button:before{content:counter(s,decimal-leading-zero);font:500 11px var(--mono);width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--line2);border-radius:50%;transition:all .3s var(--ease)}
+.jr button:hover{color:#fff}
+.jr button.on{color:#fff}
+.jr button.on:before{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.08)}
+.jr button.done:before{border-color:var(--sky);color:var(--sky)}
+.jfill{display:block;height:2px;width:0;background:var(--accent);transition:width .7s var(--ease)}
+@media(max-width:900px){.jr{padding:0 10px;overflow-x:auto;display:flex}.jr button{flex:none;border:0;margin:0;padding:12px 14px 12px 6px}}
+
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:34px;padding:30px 28px 50px;max-width:1280px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:18px 16px}}
+.tabs{display:none}
+.pane{display:none}.pane.on{display:block;animation:paneIn .6s var(--ease)}
+@keyframes paneIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.ph{margin:0 0 16px}
+.ph .k{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.ph h2{margin:4px 0 4px;font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-.01em;text-transform:uppercase;line-height:1.05}
+.ph p{margin:0;color:var(--ink2);max-width:620px;font-size:14px}
+#stat{min-height:22px;color:var(--ink2);font:400 12px var(--mono);letter-spacing:.02em;margin:0 0 14px;padding-inline-start:12px;border-inline-start:2px solid var(--line2)}
+#stat.err{color:var(--warn);border-color:var(--warm)}
+#aladin{height:min(66vh,620px);background:#000;border:1px solid var(--line)}
+.era{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0}
+.era button{background:var(--panel);border:1px solid var(--line);border-radius:2px;padding:8px 12px;cursor:pointer;text-align:start;line-height:1.25;color:var(--ink);transition:border-color .2s,background .2s}
+.era button:hover{border-color:var(--line2)}
+.era button b{display:block;font:500 12px var(--mono)}
+.era button span{font-size:12px;color:var(--ink2)}
+.era button.on{border-color:var(--accent);background:var(--panel2)}
+.era button.sx{background:var(--blue);border-color:var(--blue)}
+.era button.sx span{color:#c5d4f2}
+.plate{position:relative;aspect-ratio:1/1;max-height:74vh;width:100%;background:var(--plate);border:1px solid var(--line);display:grid;place-items:center;overflow:hidden}
 #cv{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:none}
-.plate.live #cv{display:block}
-#msg{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:#aab3bc}
-#msg.err{color:#ff9d84}
+.plate.live #cv{display:block;animation:fade .5s}
+#msg{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:22px;padding:30px;text-align:center;color:var(--ink2);font-size:14px}
+#msg.err{color:var(--warn)}
 .plate.live #msg{display:none}
-.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 6px}
-.btn{background:var(--ink);color:var(--paper);border:0;border-radius:3px;padding:7px 16px;cursor:pointer;font-weight:500}
-.btn:hover{background:#27313a}
-.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink2)}
-.btn.ghost:hover{background:var(--panel)}
-.speed{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13px;margin-inline-start:auto}
+.plate.busy #msg:before{content:"";width:92px;height:92px;border-radius:50%;border:1px solid var(--line2);background:conic-gradient(from 0deg,rgba(185,160,245,0) 0,rgba(185,160,245,.55) 100%);-webkit-mask:radial-gradient(circle,transparent 0,transparent 3px,#000 4px);mask:radial-gradient(circle,transparent 0,transparent 3px,#000 4px);animation:spin 1.3s linear infinite}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin:16px 0 6px}
+.speed{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:12px;margin-inline-start:auto;font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em}
 input[type=range]{accent-color:var(--accent)}
 #slider{width:100%}
-.ends{display:flex;justify-content:space-between;color:var(--ink2);font-size:13px;font-variant-numeric:tabular-nums}
-.readout{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;border-top:1px solid var(--line)}
-.readout div{padding:10px 12px 0 0}
-.readout dt{font-size:12px;color:var(--ink2);margin:0}
-.readout dd{margin:2px 0 0;font-weight:600;font-size:17px;font-variant-numeric:tabular-nums}
+.ends{display:flex;justify-content:space-between;color:var(--ink2);font:400 12px var(--mono)}
+.readout{display:grid;grid-template-columns:repeat(4,1fr);margin-top:16px;border-top:1px solid var(--line)}
+.readout div{padding:12px 12px 0 0}
+.readout dt{font:400 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin:0}
+.readout dd{margin:3px 0 0;font:500 18px var(--mono)}
 @media(max-width:600px){.readout{grid-template-columns:repeat(2,1fr)}}
-iframe{width:100%;height:min(74vh,700px);border:0;background:#000;border-radius:2px}
+iframe{width:100%;height:min(72vh,700px);border:1px solid var(--line);background:#000}
+.nextrow{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:22px;padding-top:16px;border-top:1px solid var(--line)}
+.nextrow span{font:400 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)}
+
 aside{display:flex;flex-direction:column}
-section{padding:0 0 18px;margin:0 0 18px;border-bottom:1px solid var(--line)}
-section:last-child{border:0}
-h2{font-size:15px;font-weight:600;margin:0 0 10px}
+aside section{padding:20px;margin:0 0 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel)}
+aside section:last-child{margin:0}
+aside h2{font:500 11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink2);margin:0 0 12px;display:flex;align-items:center;gap:10px}
+aside h2:before{content:"";width:14px;height:2px;background:var(--accent)}
 .f{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.f label{display:flex;flex-direction:column;font-size:12.5px;color:var(--ink2);gap:3px}
+.f label{display:flex;flex-direction:column;font-size:12px;color:var(--ink2);gap:4px}
 .f label.w{grid-column:1/-1}
-input[type=text],select{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:7px 9px;color:var(--ink);font-variant-numeric:tabular-nums}
-.go{margin-top:12px;width:100%;padding:10px}
-.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
-.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+input[type=text],select{background:var(--panel);border:1px solid var(--line2);border-radius:2px;padding:9px 10px;color:var(--ink);font:400 13px var(--mono);transition:border-color .2s}
+input[type=text]:hover,select:hover{border-color:#6b7480}
+input[type=text]:focus{border-color:var(--sky);outline:0}
+select option{background:#0a0c0f}
+.go{margin-top:12px;width:100%}
+.chk{display:flex;align-items:center;gap:8px;margin:9px 0;cursor:pointer;font-size:14px}
+.chk input{accent-color:var(--accent)}
+.row{display:flex;align-items:center;gap:10px;margin:9px 0}
 .row span{min-width:78px;color:var(--ink2);font-size:13px}
 .row input[type=range],.row select{flex:1}
-details summary{cursor:pointer;color:var(--ink2);font-size:13px;margin-top:10px}
+details summary{cursor:pointer;color:var(--ink2);font-size:13px;margin-top:12px}
+details summary:hover{color:#fff}
 .note{font-size:12.5px;color:var(--ink2);margin:8px 0 0}
-#info{font-size:13.5px;margin:0}
-#info b{font-variant-numeric:tabular-nums}
-#sp{width:100%;height:150px;background:var(--panel);border:1px solid var(--line);border-radius:2px;display:block}
-footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font-size:11.5px}
+#info{font-size:13.5px;margin:0;line-height:1.7}
+#info b,#uinfo b{font-family:var(--mono);font-weight:500;color:#fff}
+#uinfo>*{animation:rise .5s var(--ease) both}
+#sp{width:100%;height:150px;background:var(--panel);border:1px solid var(--line);display:block}
+footer{max-width:1280px;margin:0 auto;padding:22px 28px 40px;color:var(--ink2);font-size:11.5px;border-top:1px solid var(--line)}
+footer p{margin:0 0 10px;max-width:900px}
 
-.unistage{position:relative;aspect-ratio:16/10;max-height:68vh;width:100%;background:#04060d;border-radius:2px;overflow:hidden}
+.unistage{position:relative;aspect-ratio:16/10;max-height:66vh;width:100%;background:#02030a;border:1px solid var(--line);overflow:hidden}
 #uni{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
-.unihint{position:absolute;left:12px;bottom:8px;color:#8fa0b3;font-size:12px;pointer-events:none}
-.ucard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:14px;align-items:start}
+.unihint{position:absolute;left:14px;bottom:10px;color:#8fa0b3;font:400 11px var(--mono);letter-spacing:.04em;pointer-events:none}
+.ucard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px;margin-top:18px;align-items:start}
 @media(max-width:700px){.ucard{grid-template-columns:1fr}}
-#trk{width:100%;aspect-ratio:21/13;background:#04060d;border-radius:2px;display:block}
-#uinfo{font-size:13.5px;line-height:1.6}
-#uinfo h3{margin:0 0 4px;font-size:19px}
-#ubtn{margin:0 0 10px}
+#trk{width:100%;aspect-ratio:21/13;background:#04060d;border:1px solid var(--line);display:block}
+#uinfo{font-size:13.5px;line-height:1.65}
+#uinfo h3{margin:0 0 6px;font-size:24px;font-weight:800;text-transform:uppercase;letter-spacing:-.01em}
+
+.rv{opacity:0;transform:translateY(24px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.rv.in{opacity:1;transform:none}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}html{scroll-behavior:auto}.rv{opacity:1;transform:none}h1 span,.lead,.cta,.chips{opacity:1;transform:none}}
+
+/* ===== Orbit-inspired theme: glass cards, lavender accent, sunset horizon ===== */
+.hero,.tsec,.band{padding:0;margin:0;border-bottom:1px solid var(--line)}
+.top{background:rgba(7,8,19,.9)}
+.brand i{background:none;border:2px solid #fff;overflow:visible}
+.brand i:after{left:50%;top:-6px;width:8px;height:8px;margin-left:-4px;border-radius:50%;background:var(--accent);transform:none}
+.hero{min-height:min(80vh,700px);background:linear-gradient(115deg,transparent 28%,rgba(185,160,245,.16) 46%,rgba(255,170,200,.09) 54%,transparent 72%),radial-gradient(ellipse at 15% 0,rgba(43,58,154,.45),transparent 55%),#070813}
+.hero:after{content:"";position:absolute;left:0;right:0;bottom:0;height:45%;background:linear-gradient(to top,rgba(255,140,100,.30),rgba(185,160,245,.14) 45%,transparent);pointer-events:none}
+h1{font-size:clamp(42px,7.4vw,96px);font-weight:700;line-height:1;letter-spacing:-.03em;text-transform:none}
+h1 span{display:block}
+.btn{background:var(--accent);color:var(--accent-ink);font-weight:600;letter-spacing:.01em;text-transform:none;font-size:14px;padding:12px 24px}
+.btn.ghost{background:transparent;color:var(--ink)}
+.stepper{background:rgba(7,8,19,.88)}
+.jr button.done:before{border-color:var(--accent);color:var(--accent)}
+.jr button.on:before{color:var(--accent-ink)}
+.ph h2,#uinfo h3{text-transform:none;font-weight:700;letter-spacing:-.025em}
+.unistage,#aladin,.plate,iframe,#trk,#sp{border-radius:var(--r)}
+.era button{border-radius:12px}
+input[type=text],select{border-radius:10px;background:rgba(255,255,255,.05)}
+.readout{border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:2px 0}
+.readout div{padding:12px 16px;border-inline-end:1px solid var(--line)}
+.readout div:last-child{border-inline-end:0}
+@media(max-width:600px){.readout div:nth-child(2){border-inline-end:0}}
+
+.tsec{padding:56px 0 64px}
+.tsec-in,.band-in{max-width:1280px;margin:0 auto;padding:0 28px}
+.tsec h2,.band h2{margin:6px 0 26px;font-size:clamp(28px,4vw,46px);font-weight:700;letter-spacing:-.025em;line-height:1.05}
+.tcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px}
+.tcards .tc{position:relative;overflow:hidden;display:flex;flex-direction:column;gap:6px;min-height:260px;padding:20px 20px 18px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);text-align:start;cursor:pointer;color:var(--ink);transition:transform .35s var(--ease),border-color .25s,background .25s}
+.tcards .tc:hover{transform:translateY(-5px);border-color:var(--accent);background:var(--panel2)}
+.tcards .tc.on{background:var(--panel2);color:var(--ink);border-color:var(--accent)}
+.tc .glow{position:absolute;right:-30%;top:-35%;width:90%;aspect-ratio:1;border-radius:50%;filter:blur(18px);opacity:.75;transition:transform .6s var(--ease)}
+.tc.mov .glow{background:radial-gradient(circle,rgba(255,170,100,.65),transparent 65%)}
+.tc.var .glow{background:radial-gradient(circle,rgba(120,230,200,.55),transparent 65%)}
+.tc:hover .glow{transform:scale(1.25)}
+.tc .ly{position:relative;font:400 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#c9cfe0}
+.tc .ly b{display:block;font:700 40px/1.1 var(--font);letter-spacing:-.03em;color:#fff;text-transform:none}
+.tc strong{position:relative;margin-top:auto;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.tc .d{position:relative;color:var(--ink2);font-size:13.5px;line-height:1.45}
+.tc .tags{position:relative;display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-inline-end:26px}
+.tc em{font:500 10.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;font-style:normal;border:1px solid var(--line2);border-radius:999px;padding:3px 10px}
+.tc .arr{position:absolute;right:18px;bottom:16px;font-size:18px;transition:transform .25s var(--ease)}
+.tc:hover .arr{transform:translateX(4px)}
+
+.band{position:relative;overflow:hidden;padding:90px 0 140px;border-bottom:0;background:linear-gradient(to top,rgba(255,140,100,.32),rgba(185,160,245,.14) 45%,transparent 75%),#070813}
+.band:after{content:"";position:absolute;left:0;right:0;bottom:0;height:80px;background:#05060d;clip-path:polygon(0 70%,8% 45%,16% 62%,27% 30%,38% 58%,50% 38%,63% 64%,74% 34%,86% 60%,94% 44%,100% 58%,100% 100%,0 100%)}
+.band-in{position:relative;z-index:1}
+.band-in p:not(.eyebrow){color:#d3d9e0;max-width:480px;margin:0 0 24px}
+.band h2{margin-bottom:12px}
+footer{border-top:0;background:#05060d;max-width:none;padding:22px max(28px,calc((100vw - 1224px)/2)) 40px}
+
+/* ===== Friendlier, less "technical" ===== */
+.eyebrow,.ph .k{font:600 14px var(--font);letter-spacing:0;text-transform:none;color:var(--accent)}
+.top small,.nextrow span{font:400 13px var(--font);letter-spacing:0;text-transform:none}
+aside h2{font:700 16px var(--font);letter-spacing:0;text-transform:none;color:var(--ink)}
+aside h2:before{display:none}
+.readout dt{font:500 12px var(--font);letter-spacing:0;text-transform:none}
+.speed{font-family:var(--font);text-transform:none;letter-spacing:0;font-size:13px}
+.tc .ly{font:500 13px var(--font);letter-spacing:0;text-transform:none}
+.tc em{font:500 12px var(--font);letter-spacing:0;text-transform:none}
+.unihint,#stat{font-family:var(--font)}
+#stat{font-size:13.5px}
+.lead{line-height:1.6}
+.hl{font-style:normal;padding:0 .08em;background:linear-gradient(transparent 62%,rgba(185,160,245,.38) 62% 92%,transparent 92%);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.cta-note{color:var(--ink2);font-size:14px}
+.scrawl{margin:-14px 0 22px;font:700 26px/1 "Caveat",cursive;color:var(--accent);transform:rotate(-1.5deg);transform-origin:left}
+.tcards .tc:nth-child(odd):hover{rotate:-.7deg}
+.tcards .tc:nth-child(even):hover{rotate:.7deg}
 </style>
 
-<header>
-  <h1>Cosmic Tracker</h1>
-  <p class="tag">Search any place in the sky, fly around it, then blink real SPHEREx observations to see what moves or changes brightness.</p>
-  <nav id="targets" aria-label="Example targets"></nav>
+<header class="top">
+  <div class="brand"><i aria-hidden="true"></i>Cosmic Tracker</div>
+  <small>Pictures from NASA's SPHEREx telescope</small>
 </header>
 
-<main>
+<section class="hero" aria-label="Introduction">
+  <canvas id="sky" aria-hidden="true"></canvas>
+  <div class="orbit" aria-hidden="true"><b></b><b></b><b></b></div>
+  <div class="hero-in">
+    <p class="eyebrow">Real pictures, from a real telescope</p>
+    <h1><span>Can you spot</span><span>what <em class="hl">moves</em>?</span></h1>
+    <p class="lead">SPHEREx photographs the whole sky again and again. Flip through its pictures like a flipbook and see if anything shifts.</p>
+    <div class="cta">
+      <button class="btn arrow" id="begin">Let’s start looking</button><span class="cta-note">No sign-up. Just curiosity.</span>
+    </div>
+  </div>
+</section>
+
+<section class="tsec" id="tsec">
+  <div class="tsec-in rv">
+    <p class="eyebrow">Not sure where to look?</p>
+    <h2>Try one of these first.</h2>
+    <p class="scrawl">they’re all real objects, tap one ↓</p>
+    <nav class="tcards" id="targets" aria-label="Example targets"></nav>
+  </div>
+</section>
+
+<div class="stepper" id="stepper">
+  <div class="jr" id="jr"><button data-j="0">Find a place</button><button data-j="1">Fly there</button><button data-j="2">Compare the decades</button><button data-j="3">Flip through SPHEREx</button><button data-j="4">Go further back</button></div>
+  <i class="jfill" id="jfill"></i>
+</div>
+
+<main id="app">
   <div>
-    <div class="jr" id="jr"><button data-j="0">Find a place</button><button data-j="1">Fly around the sky</button><button data-j="2">Same place through the decades</button><button data-j="3">SPHEREx 2025–now</button><button data-j="4">WISE 2010–2024</button></div>
     <div class="tabs" id="tabs">
       <button data-p="uni" class="on">Universe 3D</button>
       <button data-p="map">Sky map</button>
@@ -101,21 +264,24 @@ footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font
     <p id="stat"></p>
 
     <div class="pane on" id="p-uni">
+      <div class="ph"><div class="k">Step 2 of 5</div><h2>Fly out and look around</h2><p>Everything here sits at its real distance from Earth. Click a dot to see how far away it is and which way it’s drifting.</p></div>
       <nav id="ubtn" aria-label="Fly to a target"></nav>
       <div class="unistage"><canvas id="uni" aria-label="3D map of nearby targets"></canvas>
         <div class="unihint">Drag to rotate · scroll to zoom · click a target to fly there · double-click to open its telescope view</div></div>
       <div class="ucard">
-        <div id="uinfo"><h3>Pick a target</h3>Click one of the glowing dots (or a button above). The camera flies there and shows its distance from Earth, its motion on the sky, and a button that opens the telescope images.<br><br><span class="note">Distances use a logarithmic scale so near and far targets fit on one screen. Rings mark 10, 100 and 1000 light-years.</span></div>
+        <div id="uinfo"><h3>Pick a target</h3>Click one of the glowing dots (or a button above) and we’ll fly there. You’ll see how far it is, how it moves, and a button to open its telescope pictures.<br><br><span class="note">Distances use a logarithmic scale so near and far targets fit on one screen. Rings mark 10, 100 and 1000 light-years.</span></div>
         <canvas id="trk" width="840" height="520" aria-label="Path of the target on the sky, 100 years back and forward"></canvas>
       </div>
+      <div class="nextrow"><span>Step 2 of 5</span><button class="btn arrow" data-go="2">Next: compare the decades</button></div>
     </div>
 
     <div class="pane" id="p-map">
+      <div class="ph"><div class="k">Step 3 of 5</div><h2>Compare the decades</h2><p>Here’s the same patch of sky as different surveys saw it over the years. See if anything shows up, fades, or shifts.</p></div>
       <div id="aladin"></div>
       <div class="era" id="era" aria-label="Same patch of sky through the decades"></div>
       <p class="note" id="eraNote">Same place, different decades: each button loads a real all-sky survey taken in that era. Dates are approximate survey periods, and coverage varies by survey.</p>
       <div class="transport">
-        <button class="btn" id="fromMap">Look here in SPHEREx</button>
+        <button class="btn" id="fromMap">See this spot in SPHEREx</button>
         <label class="speed" style="margin:0">Survey
           <select id="svy">
             <option value="P/DSS2/color">Optical (DSS2)</option>
@@ -125,19 +291,21 @@ footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font
             <option value="P/GALEXGR6_7/NUV">Ultraviolet (GALEX)</option>
           </select></label>
       </div>
-      <p class="note">Drag to move, scroll to zoom (the whole sky is explorable), click to set the target. Then use “Look here in SPHEREx”.</p>
+      <p class="note">Drag to move, scroll to zoom (the whole sky is explorable), click to set the target. Then use “See this spot in SPHEREx”.</p>
+      <div class="nextrow"><span>Step 3 of 5</span><button class="btn arrow" data-go="3">Next: flip through SPHEREx</button></div>
     </div>
 
     <div class="pane" id="p-time">
+      <div class="ph"><div class="k">Step 4 of 5</div><h2>Flip through SPHEREx</h2><p>These are real pictures from 2025 until now, shown one after another. If a dot jumps between frames, it might be moving.</p></div>
       <div class="plate" id="plate">
         <canvas id="cv" aria-label="SPHEREx cutout"></canvas>
-        <div id="msg">Search for an object or pick an example, and the SPHEREx images will appear here.</div>
+        <div id="msg">Pick a target or search for something, and its SPHEREx pictures will show up here.</div>
       </div>
       <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" style="margin-top:14px">
       <div class="ends"><span id="d0"></span><span id="d1"></span></div>
       <div class="transport">
         <button class="btn ghost" id="prev">Previous</button>
-        <button class="btn" id="pp" style="min-width:84px">Pause</button>
+        <button class="btn" id="pp" style="min-width:96px">Pause</button>
         <button class="btn ghost" id="next">Next</button>
         <label class="speed">Blink rate <input id="speed" type="range" min="1" max="12" value="3"></label>
       </div>
@@ -147,23 +315,26 @@ footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font
         <div><dt>Detector</dt><dd id="rDet">–</dd></div>
         <div><dt>Frame</dt><dd id="rFr">–</dd></div>
       </dl>
+      <div class="nextrow"><span>Step 4 of 5</span><button class="btn arrow" data-go="4">Next: go further back</button></div>
     </div>
 
     <div class="pane" id="p-years">
+      <div class="ph"><div class="k">Step 5 of 5</div><h2>Go further back</h2><p>Same spot, but across fourteen years of older WISE and NEOWISE pictures. Long enough for slow movers to show themselves.</p></div>
       <iframe id="wv" title="WiseView" loading="lazy"></iframe>
       <p class="note">SPHEREx only began observing in 2025. For motion across many years, this embeds WiseView (American Museum of Natural History), which blinks WISE and NEOWISE images from 2010 to 2024. <a id="wvOpen" target="_blank" rel="noopener">Open in a new tab</a> if the frame stays blank.</p>
+      <div class="nextrow"><span>Step 5 of 5</span><button class="btn ghost arrow" data-go="1">Try another target</button></div>
     </div>
   </div>
 
   <aside>
-    <section>
+    <section class="rv">
       <h2>Find a place</h2>
       <div class="f">
-        <label class="w">Object name or “RA Dec”<input type="text" id="q" placeholder="Barnard's Star, M31, 133.78 -7.24"></label>
+        <label class="w">Name or coordinates<input type="text" id="q" placeholder="Barnard's Star, M31, 133.78 -7.24"></label>
       </div>
-      <button class="btn go" id="search">Search and fly there</button>
-      <details><summary>Exact position and options</summary>
-        <div class="f" style="margin-top:8px">
+      <button class="btn go arrow" id="search">Search</button>
+      <details><summary>I know the exact coordinates</summary>
+        <div class="f" style="margin-top:10px">
           <label>Right ascension (°)<input type="text" id="ra" value="133.786245" inputmode="decimal"></label>
           <label>Declination (°)<input type="text" id="dec" value="-7.244372" inputmode="decimal"></label>
           <label>Cutout size (°)<input type="text" id="size" value="0.1" inputmode="decimal"></label>
@@ -173,17 +344,17 @@ footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font
           <label class="w">Epoch of the position<input type="text" id="ep" value="2016.0"></label>
         </div>
         <datalist id="cols"></datalist>
-        <button class="btn ghost go" id="load">Load SPHEREx images</button>
+        <button class="btn ghost go" id="load">Load the pictures</button>
       </details>
     </section>
 
-    <section>
-      <h2>About this target</h2>
-      <p id="info">Nothing selected yet.</p>
+    <section class="rv">
+      <h2>What you’re looking at</h2>
+      <p id="info">Pick a target and I’ll tell you about it here.</p>
     </section>
 
-    <section>
-      <h2>Display</h2>
+    <section class="rv">
+      <h2>Make it easier to see</h2>
       <div class="row"><span>Colormap</span>
         <select id="cmap"><option value="gray">Grayscale</option><option value="heat">Heat</option><option value="cool">Cool</option></select></div>
       <div class="row"><span>Contrast</span><input id="con" type="range" min="30" max="300" value="100"></div>
@@ -191,18 +362,30 @@ footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font
       <label class="chk"><input type="checkbox" id="diff"> Subtract first frame (experimental)</label>
       <label class="chk"><input type="checkbox" id="mk" checked> Mark target position</label>
       <div class="row"><span>Detector</span><select id="det"></select></div>
-      <p class="note">Each SPHEREx image samples a different wavelength. Choosing one detector makes brightness changes easier to compare.</p>
+      <p class="note">Each picture is taken in a different color of infrared light. Pick one detector to compare like with like.</p>
     </section>
 
-    <section>
-      <h2>Brightness vs wavelength</h2>
+    <section class="rv">
+      <h2>How bright, in each color</h2>
       <canvas id="sp" width="640" height="300"></canvas>
-      <p class="note">Median of a 3×3 pixel patch at the target, per frame. Frames were taken on different dates, so differences mix colour and change over time.</p>
+      <p class="note">Brightness of the tiny patch right at your target, frame by frame. The frames were taken on different days, so you’re seeing a mix of color and real change.</p>
     </section>
   </aside>
 </main>
 
-<footer>This publication makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. Data served by NASA/IPAC IRSA. Distances and proper motions of the example targets: rounded literature values (Gaia-based where available); the two variable stars have approximate distances. Name lookup: CDS Sesame. What you see on a frame are candidates for motion or change, not confirmed discoveries; noise and image quality can look like movement. Sky map: Aladin Lite (CDS).</footer>
+<section class="band">
+  <div class="band-in rv">
+    <p class="eyebrow">Your turn</p>
+    <h2>Did anything move?</h2>
+    <p>Pick another target, or type in a name (M31, Orion, anything) and see what it does.</p>
+    <button class="btn arrow" data-go="1">Try another target</button>
+  </div>
+</section>
+
+<footer>
+<p>An independent educational project. It is not an official NASA website and is not affiliated with or endorsed by NASA.</p>
+<p>This publication makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. Data served by NASA/IPAC IRSA. Distances and proper motions of the example targets: rounded literature values (Gaia-based where available); the two variable stars have approximate distances. Name lookup: CDS Sesame. What you see on a frame are candidates for motion or change, not confirmed discoveries; noise and image quality can look like movement. Sky map: Aladin Lite (CDS).</p>
+</footer>
 
 <script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
 <script>
@@ -217,27 +400,42 @@ const TARGETS=[
  ["R Draconis",248.173,66.755,0.05]];
 let ALL=[],F=[],i=0,timer=null,aladin=null,playing=false,TR=null,GAIA=null,runId=0;
 
+const STEP={uni:1,map:2,time:3,years:4};
 function tab(p){document.querySelectorAll(".pane").forEach(e=>e.classList.toggle("on",e.id==="p-"+p));
   document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
   if(p==="years")years();
   if(p==="map")setTimeout(()=>window.dispatchEvent(new Event("resize")),60);
-  if(p==="uni")setTimeout(uniSize,30)}
+  if(p==="uni")setTimeout(uniSize,30);
+  if(STEP[p]!=null)jstep(STEP[p])}
 $("tabs").onclick=e=>{if(e.target.dataset.p)tab(e.target.dataset.p)};
-function jstep(n){document.querySelectorAll("#jr button").forEach(b=>b.classList.toggle("on",+b.dataset.j===n))}
+function jstep(n){document.querySelectorAll("#jr button").forEach(b=>{const j=+b.dataset.j;b.classList.toggle("on",j===n);b.classList.toggle("done",j<n)});$("jfill").style.width=((n+1)/5*100)+"%"}
 $("jr").onclick=e=>{const n=e.target.dataset.j;if(n==null)return;jstep(+n);
-  if(n==="0"){$("q").focus()}else if(n==="1"||n==="2"){tab("map");if(n==="2")era(Math.max(0,eraI))}
-  else if(n==="3")tab("time");else tab("years")};
+  if(n==="0"){jstep(0);scrollApp();setTimeout(()=>$("q").focus({preventScroll:true}),600);return}
+  else if(n==="1")tab("uni");
+  else if(n==="2"){tab("map");era(Math.max(0,eraI))}
+  else if(n==="3"){if(ALL.length)tab("time");else load(true)}
+  else tab("years");
+  scrollApp()};
+function scrollApp(){const s=$("stepper").offsetHeight;window.scrollTo({top:$("app").offsetTop-s-8,behavior:"smooth"})}
+document.addEventListener("click",e=>{const g=e.target.closest("[data-go]");if(g){const b=document.querySelector('#jr [data-j="'+g.dataset.go+'"]');if(b)b.click()}});
+$("begin").onclick=()=>{jstep(0);scrollApp();setTimeout(()=>$("q").focus({preventScroll:true}),700)};
 function status(t,err){$("stat").textContent=t;$("stat").className=err?"err":""}
-function say(t,err){$("msg").textContent=t;$("msg").className=err?"err":"";$("plate").classList.remove("live")}
+function say(t,err){$("msg").textContent=t;$("msg").className=err?"err":"";$("plate").classList.remove("live");$("plate").classList.toggle("busy",!err&&/…/.test(t))}
 
-$("targets").innerHTML=TARGETS.map((t,k)=>`<button data-k="${k}">${t[0]}</button>`).join("");
-$("targets").onclick=e=>{const k=e.target.dataset.k;if(k==null)return;const t=TARGETS[k];
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===e.target));
+const TMETA={"WISE 0855":["7.4","About as cold as a freezer, and invisible except in infrared.",["Moving","Infrared"]],
+ "Barnard's Star":["6.0","Races across our sky faster than any other star we know.",["Moving","Nearby"]],
+ "Epsilon Indi":["11.9","A close neighbor with two brown dwarfs circling it.",["Moving","Brown dwarfs"]],
+ "RW Aurigae":["≈ 500","A young star whose light dips and flickers unpredictably.",["Variable","Young star"]],
+ "R Draconis":["≈ 1,000","Puffs up and fades on a cycle of about 246 days.",["Variable","Pulsating"]]};
+$("targets").innerHTML=TARGETS.map((t,k)=>{const m=TMETA[t[0]]||["","",[]];
+  return `<button class="tc ${m[2][0]==="Variable"?"var":"mov"}" data-k="${k}"><i class="glow"></i><span class="ly"><b>${m[0]}</b>light-years away</span><strong>${t[0]}</strong><span class="d">${m[1]}</span><span class="tags">${m[2].map(x=>`<em>${x}</em>`).join("")}</span><span class="arr">→</span></button>`}).join("");
+$("targets").onclick=e=>{const cb=e.target.closest("[data-k]");if(!cb)return;const k=cb.dataset.k;const t=TARGETS[k];
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===cb));
   $("ra").value=t[1];$("dec").value=t[2];$("size").value=t[3];
-  $("pmra").value=t[4]??"";$("pmdec").value=t[5]??"";$("ep").value=t[6]??2016.0;$("q").value=t[0];load(true)};
+  $("pmra").value=t[4]??"";$("pmdec").value=t[5]??"";$("ep").value=t[6]??2016.0;$("q").value=t[0];scrollApp();load(true)};
 
 try{A.init.then(()=>{aladin=A.aladin("#aladin",{survey:"P/DSS2/color",fov:0.5,target:"133.786 -7.244",showReticle:true,showFullscreenControl:false});
-  aladin.on("click",o=>{if(o&&o.ra!=null&&!o.isDragging){$("ra").value=o.ra.toFixed(5);$("dec").value=o.dec.toFixed(5);$("pmra").value="";$("pmdec").value="";status("Target set from the map. Click “Look here in SPHEREx”.")}})})}catch(e){}
+  aladin.on("click",o=>{if(o&&o.ra!=null&&!o.isDragging){$("ra").value=o.ra.toFixed(5);$("dec").value=o.dec.toFixed(5);$("pmra").value="";$("pmdec").value="";status("Got it, spot picked. Hit “See this spot in SPHEREx”.")}})})}catch(e){}
 $("svy").onchange=()=>{try{aladin.setBaseImageLayer($("svy").value)}catch(e){}};
 
 // Journey through the years: real HiPS surveys ordered by when the data were taken (approximate periods)
@@ -294,7 +492,7 @@ async function sia(col,ra,dec){
   out.raw=all.length;return out}
 async function getFrames(ra,dec,size,col,say2){
   let rows=[],used=col;const errs=[],diag=[];
-  for(const c of(col&&col!=="auto"?[col]:CANDS)){say2(`Searching IRSA collection ${c}…`);
+  for(const c of(col&&col!=="auto"?[col]:CANDS)){say2(`Checking NASA collection ${c}…`);
     try{rows=await sia(c,ra,dec);diag.push(c+": "+rows.raw+" rows, "+rows.length+" usable")}catch(e){errs.push(c+": "+e.message);continue}
     if(rows.length){used=c;break}}
   if(!rows.length&&errs.length)throw new Error(errs.join(" || "));
@@ -309,7 +507,7 @@ async function getFrames(ra,dec,size,col,say2){
       const im=parseFits(b),cv=im&&toCanvas(im);
       if(cv){const m=r.url.match(/_2D(\d)_/);out.push({mjd:r.mjd,detector:m?+m[1]:null,wavelength_um:isFinite(r.wl)?r.wl:null,im:cv.c,cx:.5,cy:.5,flux:cv.flux})}else skipped++}
     catch(e){skipped++}
-    say2(`Downloading real SPHEREx cutouts… ${++done} of ${rows.length}`)}};
+    say2(`Downloading pictures… ${++done} of ${rows.length}`)}};
   await Promise.all([work(),work(),work(),work()]);
   out.sort((p,q)=>p.mjd-q.mjd);
   return{count:out.length,total:rows.length,skipped,collection:used,frames:out,note:out.length?null:"Cutouts were downloaded but all were at the detector edge or unreadable. Try a smaller cutout size."}}
@@ -324,11 +522,11 @@ $("search").onclick=async()=>{
   const m=q.match(/^(-?\d+(?:\.\d+)?)[\s,]+(-?\d+(?:\.\d+)?)$/);
   document.querySelectorAll("nav button").forEach(b=>b.classList.remove("on"));
   if(m){$("ra").value=m[1];$("dec").value=m[2]}
-  else{status("Looking up “"+q+"”…");
+  else{status("Looking for “"+q+"”…");
     try{const t=await (await fetch(P("https://cds.unistra.fr/cgi-bin/nph-sesame/-oI/SNV?"+encodeURIComponent(q)))).text();
-      const m2=t.match(/%J\s+([\d.]+)\s+([+-][\d.]+)/);if(!m2){status("Could not find “"+q+"”. Try coordinates instead.",true);return}
+      const m2=t.match(/%J\s+([\d.]+)\s+([+-][\d.]+)/);if(!m2){status("Hmm, couldn’t find “"+q+"”. Try its coordinates instead?",true);return}
       $("ra").value=m2[1];$("dec").value=m2[2]}
-    catch(e){status("Name lookup failed (check your internet). You can type coordinates instead.",true);return}}
+    catch(e){status("The name lookup didn’t work. Check your connection, or type coordinates instead.",true);return}}
   $("pmra").value="";$("pmdec").value="";$("ep").value="2016.0";load()};
 $("q").addEventListener("keydown",e=>{if(e.key==="Enter")$("search").click()});
 
@@ -378,7 +576,7 @@ function demoFrames(ra,dec){
 async function load(showTime){
   const ra=$("ra").value.trim(),dec=$("dec").value.trim(),size=$("size").value.trim()||"0.1";
   if(!isFinite(ra)||!isFinite(dec)||ra===""||dec===""||+dec<-90||+dec>90||+ra<0||+ra>360){
-    tab("time");say("Enter RA between 0 and 360 and Dec between -90 and 90, in decimal degrees.",true);return}
+    tab("time");say("Those coordinates don’t look right. RA should be 0 to 360 and Dec −90 to 90, in decimal degrees.",true);return}
   const id=++runId;stop();if(!showTime)tab("map");
   try{history.replaceState(null,"",`?ra=${ra}&dec=${dec}&size=${size}`)}catch(e){}
   fly(ra,dec,Math.max(0.05,+size*3));years();
@@ -390,8 +588,8 @@ async function load(showTime){
     TR={ra:GAIA.ra,dec:GAIA.dec,pmra,pmdec,epoch:ep}}
   else if(pmra!=null&&pmdec!=null)TR={ra:+ra,dec:+dec,pmra,pmdec,epoch:ep};
   showInfo();
-  status("Searching the IRSA archive and downloading cutouts. This can take up to a minute.");
-  say("Searching the IRSA archive and downloading cutouts…");
+  status("Asking NASA’s archive for pictures of this spot. This can take up to a minute.");
+  say("Asking NASA’s archive for pictures…");
   let j,why="";try{j=await getFrames(ra,dec,+size,$("col").value.trim(),m=>{if(id===runId)status(m)})}
   catch(e){why="NASA fetch failed: "+e.message}
   if(id!==runId)return;
@@ -402,10 +600,10 @@ async function load(showTime){
     ALL=j.frames;
   const dets=[...new Set(ALL.map(f=>f.detector))].sort();
   $("det").innerHTML='<option value="all">All detectors</option>'+dets.map(d=>`<option value="${d}">Detector ${d}</option>`).join("");
-  $("plate").classList.add("live");
+  $("plate").classList.remove("busy");$("plate").classList.add("live");
   filter();if(demo){if(showTime){play();tab("time");jstep(3)}else stop()}else{play();tab("time");jstep(3)}
-  if(demo)status("SIMULATED DEMO FRAMES, NOT REAL NASA DATA. The live SPHEREx download failed: "+why,true);
-  else status(`${j.count} real SPHEREx images loaded (${j.collection}). Use the Sky map tab to look around, or Long baseline for 2010–2024.`);
+  if(demo)status("Heads up: these are SIMULATED demo frames, not real NASA data. The live download failed: "+why,true);
+  else status(`Got ${j.count} real SPHEREx pictures (${j.collection}). Watch for anything that jumps, then try the next steps above.`);
 }
 function filter(){
   const d=$("det").value;F=d==="all"?ALL:ALL.filter(f=>String(f.detector)===d);
@@ -441,7 +639,7 @@ function render(){
     if(f.cx!=null){const x=f.cx*W,y=f.cy*H,a=r*.6,b=r*.25; // fixed sky position: corner brackets
       ctx.strokeStyle="rgba(80,200,255,.9)";ctx.beginPath();
       [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{ctx.moveTo(x+sx*a,y+sy*b);ctx.lineTo(x+sx*a,y+sy*a);ctx.lineTo(x+sx*b,y+sy*a)});ctx.stroke()}
-    if(f.px!=null){ctx.strokeStyle="#ff4d2e";ctx.beginPath();ctx.arc(f.px*W,f.py*H,r,0,7);ctx.stroke()}}
+    if(f.px!=null){ctx.strokeStyle="#fc3d21";ctx.beginPath();ctx.arc(f.px*W,f.py*H,r,0,7);ctx.stroke()}}
   $("rDate").textContent=new Date((f.mjd-40587)*864e5).toISOString().slice(0,10);
   $("rWl").textContent=f.wavelength_um?f.wavelength_um+" µm":"–";
   $("rDet").textContent=f.detector??"–";
@@ -452,15 +650,15 @@ function spectrum(){
   const c=$("sp"),x=c.getContext("2d"),W=c.width,H=c.height,P=34;
   x.clearRect(0,0,W,H);
   const pts=F.filter(f=>f.flux!=null&&f.wavelength_um);
-  x.font="20px sans-serif";x.fillStyle="#4a545e";
+  x.font="20px sans-serif";x.fillStyle="#a4adb8";
   if(pts.length<2){x.fillText("Not enough measurements at the target",P,H/2);return}
   const xs=pts.map(f=>f.wavelength_um),ys=pts.map(f=>f.flux);
   const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),sy=y1>y0?y1-y0:1,sx=x1>x0?x1-x0:1;
   const X=v=>P+(v-x0)/sx*(W-P-12),Y=v=>H-26-(v-y0)/sy*(H-44);
-  x.strokeStyle="#b9c0c6";x.beginPath();x.moveTo(P,8);x.lineTo(P,H-26);x.lineTo(W-8,H-26);x.stroke();
+  x.strokeStyle="#3a414b";x.beginPath();x.moveTo(P,8);x.lineTo(P,H-26);x.lineTo(W-8,H-26);x.stroke();
   x.fillText(x0.toFixed(1)+" µm",P,H-4);x.textAlign="right";x.fillText(x1.toFixed(1)+" µm",W-8,H-4);x.textAlign="left";
   x.fillText("MJy/sr",P+6,20);
-  pts.forEach(f=>{x.fillStyle=f===F[i]?"#ff4d2e":"#1c3fd0";x.beginPath();x.arc(X(f.wavelength_um),Y(f.flux),f===F[i]?7:4,0,7);x.fill()})}
+  pts.forEach(f=>{x.fillStyle=f===F[i]?"#fc3d21":"#5b9bff";x.beginPath();x.arc(X(f.wavelength_um),Y(f.flux),f===F[i]?7:4,0,7);x.fill()})}
 
 $("load").onclick=load;
 $("pp").onclick=()=>playing?stop():play();
@@ -485,7 +683,7 @@ const U=[
  {name:"R Draconis",ra:248.173,dec:66.755,ly:1000,apx:true,type:"Mira-type variable (pulsating red giant, cycle of about 246 days)",kind:"variable",period:245.6,size:0.05,spec:"mira",note:"It swells and fades on a regular cycle. Distance is approximate."}];
 const rd=ly=>22*Math.log10(1+ly);
 U.forEach(u=>{const a=u.ra*Math.PI/180,d=u.dec*Math.PI/180,r=rd(u.ly);u.p=[r*Math.cos(d)*Math.cos(a),r*Math.cos(d)*Math.sin(a),r*Math.sin(d)]});
-let yaw=0.6,pitch=0.35,dist=170,fx=0,fy=0,fz=0,gx=0,gy=0,gz=0,gdist=170,sel=-1,auto=true,drag=null,mouse=null;
+let yaw=0.6,pitch=0.35,dist=620,fx=0,fy=0,fz=0,gx=0,gy=0,gz=0,gdist=170,sel=-1,auto=true,drag=null,mouse=null;
 const BG=(()=>{let sd=7;const r=()=>(sd=sd*16807%2147483647)/2147483647,o=[];
   for(let k=0;k<420;k++){const a=r()*6.2832,z=r()*2-1,q=Math.sqrt(1-z*z);o.push([q*Math.cos(a),q*Math.sin(a),z,.25+r()*.75])}return o})();
 function rot(x,y,z){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
@@ -538,7 +736,7 @@ function uniSelect(k){sel=k;
    Sky position: ${u.ra.toFixed(4)}°, ${u.dec.toFixed(4)}°<br>
    Motion on the sky: ${pmTxt}<br>
    <span class="note">${u.note}</span><br>
-   <button class="btn go" id="uopen" style="margin-top:10px">Open telescope view (SPHEREx time-lapse)</button>`;
+   <button class="btn go" id="uopen" style="margin-top:10px">See it through SPHEREx</button>`;
   trackDraw(u)}
 function trackDraw(u){const c=$("trk"),x=c.getContext("2d"),W=c.width,H=c.height;
   x.fillStyle="#04060d";x.fillRect(0,0,W,H);x.font="22px sans-serif";x.fillStyle="#9fb0c4";
@@ -572,6 +770,25 @@ $("uinfo").onclick=e=>{if(e.target.id==="uopen"&&sel>=0)openScope(U[sel])};
   c.addEventListener("dblclick",e=>{const k=uniPick(e);if(k>=0)openScope(U[k])})})();
 uniSize();trackDraw(null);uniLoop();
 fetch("/api/collections").then(r=>r.json()).then(j=>{$("cols").innerHTML=(j.collections||[]).map(c=>`<option value="${c}">`).join("")}).catch(()=>{});
+
+// ================= Hero starfield, scroll reveal =================
+(()=>{const c=$("sky"),x=c.getContext("2d"),still=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let W=0,H=0,S=[],mx=0,my=0,tx=0,ty=0;
+  const size=()=>{const r=c.getBoundingClientRect(),d=Math.min(2,devicePixelRatio||1);W=c.width=Math.round(r.width*d);H=c.height=Math.round(r.height*d);
+    let sd=11;const rnd=()=>(sd=sd*16807%2147483647)/2147483647;S=[];const n=Math.round(W*H/5200);
+    for(let k=0;k<n;k++)S.push({x:rnd()*W,y:rnd()*H,z:.2+rnd()*.8,t:rnd()*6.28,r:rnd()<.07})};
+  size();addEventListener("resize",size);
+  c.parentElement.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect();tx=(e.clientX-r.left)/r.width-.5;ty=(e.clientY-r.top)/r.height-.5});
+  let vis=true;new IntersectionObserver(en=>vis=en[0].isIntersecting).observe(c);
+  function draw(t){requestAnimationFrame(draw);if(!vis)return;
+    mx+=(tx-mx)*.04;my+=(ty-my)*.04;x.clearRect(0,0,W,H);
+    for(const s of S){const dx=s.x+(still?0:(t*.006*s.z)+mx*-30*s.z),dy=s.y+my*-30*s.z,px=((dx%W)+W)%W;
+      const a=(.35+.65*s.z)*(still?1:.7+.3*Math.sin(t*.0015+s.t));
+      x.fillStyle=s.r?`rgba(255,120,95,${a})`:`rgba(215,225,255,${a})`;const z=s.z>.85?2.2:1.3;x.fillRect(px,dy,z,z)}}
+  requestAnimationFrame(draw);
+  const io=new IntersectionObserver(en=>en.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target)}}),{threshold:.12});
+  document.querySelectorAll(".rv").forEach((el,k)=>{el.style.transitionDelay=(k*70)+"ms";io.observe(el)})})();
+jstep(1);
 const q=new URLSearchParams(location.search);
 if(q.get("ra")){$("ra").value=q.get("ra");$("dec").value=q.get("dec");if(q.get("size"))$("size").value=q.get("size");load()}
 </script>
