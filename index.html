@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cosmic Tracker: blink real SPHEREx sky images</title>
+<meta name="description" content="Search any place in the sky and blink real NASA SPHEREx observations to spot moving and changing objects.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#dde1e4;--panel:#eef0f1;--ink:#10151a;--ink2:#4a545e;--line:#b9c0c6;--plate:#08090a;--accent:#1c3fd0;--warn:#a4290f;
+--font:"IBM Plex Sans Arabic","Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 15px/1.5 var(--font)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 36px;padding:18px 28px 14px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-weight:700;font-size:26px;letter-spacing:-.01em}
+.tag{color:var(--ink2);font-size:14px;flex:1 1 260px;margin:0}
+nav{display:flex;flex-wrap:wrap;gap:2px 22px}
+nav button,.tabs button{background:none;border:0;border-bottom:2px solid transparent;padding:4px 0;cursor:pointer;font-weight:500;color:var(--ink2)}
+nav button:hover,.tabs button:hover{color:var(--ink)}
+nav button.on,.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tabs{display:flex;gap:26px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.tabs button{padding:6px 0}
+main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;padding:24px 28px 40px;max-width:1280px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:16px}}
+.pane{display:none}.pane.on{display:block}
+#stat{min-height:22px;color:var(--ink2);font-size:13px;margin:0 0 8px}
+#stat.err{color:var(--warn)}
+#aladin{height:min(70vh,640px);background:#000;border-radius:2px}
+.jr{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;counter-reset:s}.jr button{counter-increment:s;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:5px 14px;cursor:pointer;font-weight:500}.jr button:before{content:counter(s) ". "}.jr button.on{background:var(--ink);color:var(--paper)}
+.era{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}.era button{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:6px 10px;cursor:pointer;text-align:start;line-height:1.25}.era button b{display:block;font-size:12px;font-variant-numeric:tabular-nums}.era button span{font-size:12px;color:var(--ink2)}.era button.on{border-color:var(--accent);background:#fff}.era button.sx{background:var(--ink);color:var(--paper)}.era button.sx span{color:#aab3bc}
+.plate{position:relative;aspect-ratio:1/1;max-height:76vh;width:100%;background:var(--plate);border-radius:2px;display:grid;place-items:center;overflow:hidden}
+#cv{width:100%;height:100%;object-fit:contain;image-rendering:pixelated;display:none}
+.plate.live #cv{display:block}
+#msg{position:absolute;inset:0;display:grid;place-items:center;padding:30px;text-align:center;color:#aab3bc}
+#msg.err{color:#ff9d84}
+.plate.live #msg{display:none}
+.transport{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:14px 0 6px}
+.btn{background:var(--ink);color:var(--paper);border:0;border-radius:3px;padding:7px 16px;cursor:pointer;font-weight:500}
+.btn:hover{background:#27313a}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--ink2)}
+.btn.ghost:hover{background:var(--panel)}
+.speed{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:13px;margin-inline-start:auto}
+input[type=range]{accent-color:var(--accent)}
+#slider{width:100%}
+.ends{display:flex;justify-content:space-between;color:var(--ink2);font-size:13px;font-variant-numeric:tabular-nums}
+.readout{display:grid;grid-template-columns:repeat(4,1fr);margin-top:14px;border-top:1px solid var(--line)}
+.readout div{padding:10px 12px 0 0}
+.readout dt{font-size:12px;color:var(--ink2);margin:0}
+.readout dd{margin:2px 0 0;font-weight:600;font-size:17px;font-variant-numeric:tabular-nums}
+@media(max-width:600px){.readout{grid-template-columns:repeat(2,1fr)}}
+iframe{width:100%;height:min(74vh,700px);border:0;background:#000;border-radius:2px}
+aside{display:flex;flex-direction:column}
+section{padding:0 0 18px;margin:0 0 18px;border-bottom:1px solid var(--line)}
+section:last-child{border:0}
+h2{font-size:15px;font-weight:600;margin:0 0 10px}
+.f{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f label{display:flex;flex-direction:column;font-size:12.5px;color:var(--ink2);gap:3px}
+.f label.w{grid-column:1/-1}
+input[type=text],select{background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:7px 9px;color:var(--ink);font-variant-numeric:tabular-nums}
+.go{margin-top:12px;width:100%;padding:10px}
+.chk{display:flex;align-items:center;gap:8px;margin:8px 0;cursor:pointer}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row span{min-width:78px;color:var(--ink2);font-size:13px}
+.row input[type=range],.row select{flex:1}
+details summary{cursor:pointer;color:var(--ink2);font-size:13px;margin-top:10px}
+.note{font-size:12.5px;color:var(--ink2);margin:8px 0 0}
+#info{font-size:13.5px;margin:0}
+#info b{font-variant-numeric:tabular-nums}
+#sp{width:100%;height:150px;background:var(--panel);border:1px solid var(--line);border-radius:2px;display:block}
+footer{max-width:1280px;margin:0 auto;padding:0 28px 30px;color:var(--ink2);font-size:11.5px}
+
+.unistage{position:relative;aspect-ratio:16/10;max-height:68vh;width:100%;background:#04060d;border-radius:2px;overflow:hidden}
+#uni{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+.unihint{position:absolute;left:12px;bottom:8px;color:#8fa0b3;font-size:12px;pointer-events:none}
+.ucard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;margin-top:14px;align-items:start}
+@media(max-width:700px){.ucard{grid-template-columns:1fr}}
+#trk{width:100%;aspect-ratio:21/13;background:#04060d;border-radius:2px;display:block}
+#uinfo{font-size:13.5px;line-height:1.6}
+#uinfo h3{margin:0 0 4px;font-size:19px}
+#ubtn{margin:0 0 10px}
+</style>
+
+<header>
+  <h1>Cosmic Tracker</h1>
+  <p class="tag">Search any place in the sky, fly around it, then blink real SPHEREx observations to see what moves or changes brightness.</p>
+  <nav id="targets" aria-label="Example targets"></nav>
+</header>
+
+<main>
+  <div>
+    <div class="jr" id="jr"><button data-j="0">Find a place</button><button data-j="1">Fly around the sky</button><button data-j="2">Same place through the decades</button><button data-j="3">SPHEREx 2025–now</button><button data-j="4">WISE 2010–2024</button></div>
+    <div class="tabs" id="tabs">
+      <button data-p="uni" class="on">Universe 3D</button>
+      <button data-p="map">Sky map</button>
+      <button data-p="time">Time machine (SPHEREx 2025–now)</button>
+      <button data-p="years">Long baseline (WISE 2010–2024)</button>
+    </div>
+    <p id="stat"></p>
+
+    <div class="pane on" id="p-uni">
+      <nav id="ubtn" aria-label="Fly to a target"></nav>
+      <div class="unistage"><canvas id="uni" aria-label="3D map of nearby targets"></canvas>
+        <div class="unihint">Drag to rotate · scroll to zoom · click a target to fly there · double-click to open its telescope view</div></div>
+      <div class="ucard">
+        <div id="uinfo"><h3>Pick a target</h3>Click one of the glowing dots (or a button above). The camera flies there and shows its distance from Earth, its motion on the sky, and a button that opens the telescope images.<br><br><span class="note">Distances use a logarithmic scale so near and far targets fit on one screen. Rings mark 10, 100 and 1000 light-years.</span></div>
+        <canvas id="trk" width="840" height="520" aria-label="Path of the target on the sky, 100 years back and forward"></canvas>
+      </div>
+    </div>
+
+    <div class="pane" id="p-map">
+      <div id="aladin"></div>
+      <div class="era" id="era" aria-label="Same patch of sky through the decades"></div>
+      <p class="note" id="eraNote">Same place, different decades: each button loads a real all-sky survey taken in that era. Dates are approximate survey periods, and coverage varies by survey.</p>
+      <div class="transport">
+        <button class="btn" id="fromMap">Look here in SPHEREx</button>
+        <label class="speed" style="margin:0">Survey
+          <select id="svy">
+            <option value="P/DSS2/color">Optical (DSS2)</option>
+            <option value="P/2MASS/color">Near-infrared (2MASS)</option>
+            <option value="P/allWISE/color">Infrared (WISE)</option>
+            <option value="P/PanSTARRS/DR1/color-z-zg-g">Optical (Pan-STARRS)</option>
+            <option value="P/GALEXGR6_7/NUV">Ultraviolet (GALEX)</option>
+          </select></label>
+      </div>
+      <p class="note">Drag to move, scroll to zoom (the whole sky is explorable), click to set the target. Then use “Look here in SPHEREx”.</p>
+    </div>
+
+    <div class="pane" id="p-time">
+      <div class="plate" id="plate">
+        <canvas id="cv" aria-label="SPHEREx cutout"></canvas>
+        <div id="msg">Search for an object or pick an example, and the SPHEREx images will appear here.</div>
+      </div>
+      <input id="slider" type="range" min="0" max="0" value="0" aria-label="Frame" style="margin-top:14px">
+      <div class="ends"><span id="d0"></span><span id="d1"></span></div>
+      <div class="transport">
+        <button class="btn ghost" id="prev">Previous</button>
+        <button class="btn" id="pp" style="min-width:84px">Pause</button>
+        <button class="btn ghost" id="next">Next</button>
+        <label class="speed">Blink rate <input id="speed" type="range" min="1" max="12" value="3"></label>
+      </div>
+      <dl class="readout">
+        <div><dt>Observation date</dt><dd id="rDate">–</dd></div>
+        <div><dt>Wavelength</dt><dd id="rWl">–</dd></div>
+        <div><dt>Detector</dt><dd id="rDet">–</dd></div>
+        <div><dt>Frame</dt><dd id="rFr">–</dd></div>
+      </dl>
+    </div>
+
+    <div class="pane" id="p-years">
+      <iframe id="wv" title="WiseView" loading="lazy"></iframe>
+      <p class="note">SPHEREx only began observing in 2025. For motion across many years, this embeds WiseView (American Museum of Natural History), which blinks WISE and NEOWISE images from 2010 to 2024. <a id="wvOpen" target="_blank" rel="noopener">Open in a new tab</a> if the frame stays blank.</p>
+    </div>
+  </div>
+
+  <aside>
+    <section>
+      <h2>Find a place</h2>
+      <div class="f">
+        <label class="w">Object name or “RA Dec”<input type="text" id="q" placeholder="Barnard's Star, M31, 133.78 -7.24"></label>
+      </div>
+      <button class="btn go" id="search">Search and fly there</button>
+      <details><summary>Exact position and options</summary>
+        <div class="f" style="margin-top:8px">
+          <label>Right ascension (°)<input type="text" id="ra" value="133.786245" inputmode="decimal"></label>
+          <label>Declination (°)<input type="text" id="dec" value="-7.244372" inputmode="decimal"></label>
+          <label>Cutout size (°)<input type="text" id="size" value="0.1" inputmode="decimal"></label>
+          <label>Archive collection<input type="text" id="col" value="auto" list="cols"></label>
+          <label>Proper motion RA (mas/yr)<input type="text" id="pmra" placeholder="auto from Gaia"></label>
+          <label>Proper motion Dec (mas/yr)<input type="text" id="pmdec" placeholder="auto from Gaia"></label>
+          <label class="w">Epoch of the position<input type="text" id="ep" value="2016.0"></label>
+        </div>
+        <datalist id="cols"></datalist>
+        <button class="btn ghost go" id="load">Load SPHEREx images</button>
+      </details>
+    </section>
+
+    <section>
+      <h2>About this target</h2>
+      <p id="info">Nothing selected yet.</p>
+    </section>
+
+    <section>
+      <h2>Display</h2>
+      <div class="row"><span>Colormap</span>
+        <select id="cmap"><option value="gray">Grayscale</option><option value="heat">Heat</option><option value="cool">Cool</option></select></div>
+      <div class="row"><span>Contrast</span><input id="con" type="range" min="30" max="300" value="100"></div>
+      <label class="chk"><input type="checkbox" id="inv"> Invert colors</label>
+      <label class="chk"><input type="checkbox" id="diff"> Subtract first frame (experimental)</label>
+      <label class="chk"><input type="checkbox" id="mk" checked> Mark target position</label>
+      <div class="row"><span>Detector</span><select id="det"></select></div>
+      <p class="note">Each SPHEREx image samples a different wavelength. Choosing one detector makes brightness changes easier to compare.</p>
+    </section>
+
+    <section>
+      <h2>Brightness vs wavelength</h2>
+      <canvas id="sp" width="640" height="300"></canvas>
+      <p class="note">Median of a 3×3 pixel patch at the target, per frame. Frames were taken on different dates, so differences mix colour and change over time.</p>
+    </section>
+  </aside>
+</main>
+
+<footer>This publication makes use of data products from the Spectro-Photometer for the History of the Universe, Epoch of Reionization and Ices Explorer (SPHEREx), which is a joint project of the Jet Propulsion Laboratory and the California Institute of Technology, and is funded by the National Aeronautics and Space Administration. Data served by NASA/IPAC IRSA. Distances and proper motions of the example targets: rounded literature values (Gaia-based where available); the two variable stars have approximate distances. Name lookup: CDS Sesame. What you see on a frame are candidates for motion or change, not confirmed discoveries; noise and image quality can look like movement. Sky map: Aladin Lite (CDS).</footer>
+
+<script src="https://aladin.cds.unistra.fr/AladinLite/api/v3/latest/aladin.js" charset="utf-8"></script>
+<script>
+const $=id=>document.getElementById(id);
+const P=u=>"/proxy?u="+encodeURIComponent(u);
+// name, ra, dec, size, pmra, pmdec, epoch  (pm in mas/yr; approximate literature values, Gaia fills the rest)
+const TARGETS=[
+ ["WISE 0855",133.786245,-7.244372,0.1,-8100,700,2014.0],
+ ["Barnard's Star",269.4521,4.6934,0.2,-798.6,10328.1,2000.0],
+ ["Epsilon Indi",330.8402,-56.7860,0.1,3966.4,-2536.2,2000.0],
+ ["RW Aurigae",76.957,30.401,0.05],
+ ["R Draconis",248.173,66.755,0.05]];
+let ALL=[],F=[],i=0,timer=null,aladin=null,playing=false,TR=null,GAIA=null,runId=0;
+
+function tab(p){document.querySelectorAll(".pane").forEach(e=>e.classList.toggle("on",e.id==="p-"+p));
+  document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
+  if(p==="years")years();
+  if(p==="map")setTimeout(()=>window.dispatchEvent(new Event("resize")),60);
+  if(p==="uni")setTimeout(uniSize,30)}
+$("tabs").onclick=e=>{if(e.target.dataset.p)tab(e.target.dataset.p)};
+function jstep(n){document.querySelectorAll("#jr button").forEach(b=>b.classList.toggle("on",+b.dataset.j===n))}
+$("jr").onclick=e=>{const n=e.target.dataset.j;if(n==null)return;jstep(+n);
+  if(n==="0"){$("q").focus()}else if(n==="1"||n==="2"){tab("map");if(n==="2")era(Math.max(0,eraI))}
+  else if(n==="3")tab("time");else tab("years")};
+function status(t,err){$("stat").textContent=t;$("stat").className=err?"err":""}
+function say(t,err){$("msg").textContent=t;$("msg").className=err?"err":"";$("plate").classList.remove("live")}
+
+$("targets").innerHTML=TARGETS.map((t,k)=>`<button data-k="${k}">${t[0]}</button>`).join("");
+$("targets").onclick=e=>{const k=e.target.dataset.k;if(k==null)return;const t=TARGETS[k];
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b===e.target));
+  $("ra").value=t[1];$("dec").value=t[2];$("size").value=t[3];
+  $("pmra").value=t[4]??"";$("pmdec").value=t[5]??"";$("ep").value=t[6]??2016.0;$("q").value=t[0];load(true)};
+
+try{A.init.then(()=>{aladin=A.aladin("#aladin",{survey:"P/DSS2/color",fov:0.5,target:"133.786 -7.244",showReticle:true,showFullscreenControl:false});
+  aladin.on("click",o=>{if(o&&o.ra!=null&&!o.isDragging){$("ra").value=o.ra.toFixed(5);$("dec").value=o.dec.toFixed(5);$("pmra").value="";$("pmdec").value="";status("Target set from the map. Click “Look here in SPHEREx”.")}})})}catch(e){}
+$("svy").onchange=()=>{try{aladin.setBaseImageLayer($("svy").value)}catch(e){}};
+
+// Journey through the years: real HiPS surveys ordered by when the data were taken (approximate periods)
+const ERAS=[["1980s–90s","Optical, DSS2 (POSS-II)","P/DSS2/red"],["1997–2001","Near-infrared, 2MASS","P/2MASS/color"],
+ ["2000–2008","Optical, SDSS","P/SDSS9/color"],["2003–2012","Ultraviolet, GALEX","P/GALEXGR6_7/NUV"],
+ ["2010–2014","Optical, Pan-STARRS","P/PanSTARRS/DR1/color-z-zg-g"],["2010–2020","Infrared, unWISE","P/unWISE/color-W2-W1W2-W1"]];
+let eraI=-1,eraTimer=null;
+$("era").innerHTML=ERAS.map((e,k)=>`<button data-e="${k}"><b>${e[0]}</b><span>${e[1]}</span></button>`).join("")+
+ `<button data-e="play"><b>▶ Play</b><span>Through the years</span></button><button class="sx" data-e="sx"><b>2025 – now</b><span>SPHEREx time machine</span></button>`;
+function era(k){eraI=k;try{aladin.setBaseImageLayer(ERAS[k][2])}catch(e){}
+  document.querySelectorAll("#era button[data-e]").forEach(b=>b.classList.toggle("on",b.dataset.e==k));
+  $("eraNote").textContent=`${ERAS[k][0]}: ${ERAS[k][1]}. Zoom and pan freely; compare what appears, fades or moves between eras.`}
+function eraStop(){clearInterval(eraTimer);eraTimer=null}
+$("era").onclick=e=>{const b=e.target.closest("button");if(!b)return;const v=b.dataset.e;
+  if(v==="sx"){eraStop();tab("time");return}
+  if(v==="play"){if(eraTimer){eraStop();return}era((eraI+1)%ERAS.length);eraTimer=setInterval(()=>era((eraI+1)%ERAS.length),3500);return}
+  eraStop();era(+v)};
+// ---- Real SPHEREx data straight from NASA/IPAC IRSA, no server needed ----
+const CANDS=["spherex_dr1","spherex_qr3","spherex_qr2","spherex_qr"];
+function parseFits(buf){const dv=new DataView(buf),td=new TextDecoder();let off=0;
+  while(off+2880<=buf.byteLength){const hd={};let end=false;
+    while(!end&&off+2880<=buf.byteLength){const blk=td.decode(new Uint8Array(buf,off,2880));off+=2880;
+      for(let k=0;k<36;k++){const c=blk.substr(k*80,80),key=c.substr(0,8).trim();if(key==="END"){end=true;break}
+        if(c[8]==="=")hd[key]=c.substr(10).split("/")[0].trim()}}
+    const bpx=+hd.BITPIX||0,nax=+hd.NAXIS||0;let n=1;const dims=[];
+    for(let k=1;k<=nax;k++){dims.push(+hd["NAXIS"+k]);n*=+hd["NAXIS"+k]}
+    const bytes=nax?Math.abs(bpx)/8*n+(+hd.PCOUNT||0):0;
+    if((hd.EXTNAME||"").replace(/'/g,"").trim()==="IMAGE"&&bpx===-32&&nax===2){
+      const a=new Float32Array(n);for(let k=0;k<n;k++)a[k]=dv.getFloat32(off+k*4,false);return{a,w:dims[0],h:dims[1]}}
+    off+=Math.ceil(bytes/2880)*2880}
+  return null}
+function toCanvas(im){const{a,w,h}=im,v=[];for(const x of a)if(isFinite(x))v.push(x);
+  if(v.length<a.length*.5)return null;v.sort((p,q)=>p-q);
+  const lo=v[Math.floor(v.length*.1)],hi=v[Math.floor(v.length*.997)];if(!(hi>lo))return null;
+  const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d"),d=x.createImageData(w,h);
+  for(let r=0;r<h;r++)for(let q=0;q<w;q++){const s=a[(h-1-r)*w+q];let n=isFinite(s)?Math.min(1,Math.max(0,(s-lo)/(hi-lo))):0;
+    n=Math.asinh(5*n)/Math.asinh(5);const o=4*(r*w+q);d.data[o]=d.data[o+1]=d.data[o+2]=n*255;d.data[o+3]=255}
+  x.putImageData(d,0,0);
+  const cx=w>>1,cy=h>>1,p=[];for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const s=a[(cy+dy)*w+cx+dx];if(isFinite(s))p.push(s)}
+  p.sort((m,n)=>m-n);return{c,flux:p.length?p[p.length>>1]:null}}
+async function sia(col,ra,dec){
+  const r=await fetch(P(`https://irsa.ipac.caltech.edu/SIA?COLLECTION=${col}&POS=circle+${ra}+${dec}+0.0003`));
+  if(!r.ok){const tx=(await r.text()).replace(/<[^>]*>/g," ").replace(/\s+/g," ").trim().slice(0,260);throw new Error("proxy/IRSA answered "+r.status+" - "+tx)}
+  const txt=await r.text();
+  const x=new DOMParser().parseFromString(txt,"text/xml");
+  const bad=[...x.getElementsByTagName("INFO")].find(e=>/error/i.test(e.getAttribute("value")||""));
+  if(bad)throw new Error("IRSA error: "+(bad.textContent||bad.getAttribute("value")).trim().slice(0,200));
+  const f=[...x.getElementsByTagName("FIELD")].map(e=>e.getAttribute("name")||e.getAttribute("ID"));
+  const iu=f.indexOf("access_url"),it=f.indexOf("t_min"),it2=f.indexOf("t_max"),iw0=f.indexOf("em_min"),iw1=f.indexOf("em_max");if(iu<0||it<0)throw new Error("unexpected IRSA reply. Columns: "+f.join(",").slice(0,150)+" | Start of reply: "+txt.replace(/\s+/g," ").slice(0,200));
+  const all=[...x.getElementsByTagName("TR")];
+  const out=all.map(t=>{const d=[...t.getElementsByTagName("TD")].map(e=>e.textContent);
+    let m=+d[it];if(!isFinite(m)||d[it].trim()==="")m=+d[it2];
+    return{url:(d[iu]||"").trim(),mjd:m,wl:(iw0>=0&&iw1>=0)?(+d[iw0]+ +d[iw1])/2*1e6:null}}).filter(o=>o.url&&isFinite(o.mjd));
+  out.raw=all.length;return out}
+async function getFrames(ra,dec,size,col,say2){
+  let rows=[],used=col;const errs=[],diag=[];
+  for(const c of(col&&col!=="auto"?[col]:CANDS)){say2(`Searching IRSA collection ${c}…`);
+    try{rows=await sia(c,ra,dec);diag.push(c+": "+rows.raw+" rows, "+rows.length+" usable")}catch(e){errs.push(c+": "+e.message);continue}
+    if(rows.length){used=c;break}}
+  if(!rows.length&&errs.length)throw new Error(errs.join(" || "));
+  if(!rows.length)return{count:0,frames:[],note:"No SPHEREx images found at this position ("+diag.join("; ")+"). Try another target."};
+  rows.sort((p,q)=>p.mjd-q.mjd);const MAX=24;
+  if(rows.length>MAX)rows=Array.from({length:MAX},(_,k)=>rows[Math.round(k*(rows.length-1)/(MAX-1))]);
+  const out=[];let done=0,skipped=0,k=0;
+  const work=async()=>{while(k<rows.length){const r=rows[k++];
+    try{let b=null;const cu=P(`${r.url}${r.url.includes("?")?"&":"?"}center=${ra},${dec}d&size=${size}`);
+      for(let t=0;t<3&&!b;t++){try{const rs=await fetch(cu);if(rs.ok)b=await rs.arrayBuffer();else await new Promise(z=>setTimeout(z,800*(t+1)))}catch(e){await new Promise(z=>setTimeout(z,800*(t+1)))}}
+      if(!b)throw new Error("download failed");
+      const im=parseFits(b),cv=im&&toCanvas(im);
+      if(cv){const m=r.url.match(/_2D(\d)_/);out.push({mjd:r.mjd,detector:m?+m[1]:null,wavelength_um:isFinite(r.wl)?r.wl:null,im:cv.c,cx:.5,cy:.5,flux:cv.flux})}else skipped++}
+    catch(e){skipped++}
+    say2(`Downloading real SPHEREx cutouts… ${++done} of ${rows.length}`)}};
+  await Promise.all([work(),work(),work(),work()]);
+  out.sort((p,q)=>p.mjd-q.mjd);
+  return{count:out.length,total:rows.length,skipped,collection:used,frames:out,note:out.length?null:"Cutouts were downloaded but all were at the detector edge or unreadable. Try a smaller cutout size."}}
+function fly(ra,dec,fov){try{aladin.gotoRaDec(+ra,+dec);aladin.setFoV(fov)}catch(e){}}
+$("fromMap").onclick=()=>{try{const [r,d]=aladin.getRaDec();$("ra").value=r.toFixed(5);$("dec").value=d.toFixed(5);$("size").value=Math.min(0.5,Math.max(0.02,aladin.getFov()[0]/2)).toFixed(3);$("pmra").value="";$("pmdec").value=""}catch(e){}load()};
+
+const img=b=>new Promise(r=>{const m=new Image();m.onload=()=>r(m);m.src="data:image/png;base64,"+b});
+const num=s=>{s=String(s).trim();return s!==""&&isFinite(s)?+s:null};
+
+$("search").onclick=async()=>{
+  const q=$("q").value.trim();if(!q)return;
+  const m=q.match(/^(-?\d+(?:\.\d+)?)[\s,]+(-?\d+(?:\.\d+)?)$/);
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("on"));
+  if(m){$("ra").value=m[1];$("dec").value=m[2]}
+  else{status("Looking up “"+q+"”…");
+    try{const t=await (await fetch(P("https://cds.unistra.fr/cgi-bin/nph-sesame/-oI/SNV?"+encodeURIComponent(q)))).text();
+      const m2=t.match(/%J\s+([\d.]+)\s+([+-][\d.]+)/);if(!m2){status("Could not find “"+q+"”. Try coordinates instead.",true);return}
+      $("ra").value=m2[1];$("dec").value=m2[2]}
+    catch(e){status("Name lookup failed (check your internet). You can type coordinates instead.",true);return}}
+  $("pmra").value="";$("pmdec").value="";$("ep").value="2016.0";load()};
+$("q").addEventListener("keydown",e=>{if(e.key==="Enter")$("search").click()});
+
+function years(){const ra=$("ra").value,dec=$("dec").value;
+  const u=`https://byw.tools/wiseview#ra=${ra}&dec=${dec}&size=176&band=2&speed=500&minbright=-50&maxbright=500&window=0.5&diff_window=1&linear=1&zoom=9&invert=1&gaia=1`;
+  if($("wv").dataset.u!==u){$("wv").src=u;$("wv").dataset.u=u}$("wvOpen").href=u}
+
+function showInfo(){
+  const g=GAIA;let h=`<b>${(+$("ra").value).toFixed(5)}°, ${(+$("dec").value).toFixed(5)}°</b><br>`;
+  {const u=uniFind(+$("ra").value,+$("dec").value);if(u)h+=`${u.type}<br>Distance <b>${u.apx?"≈ ":""}${u.ly.toLocaleString()}</b> light-years<br>`}
+  if(g&&g.found){h+=(g.dist_ly?`Distance <b>${g.dist_ly.toLocaleString()}</b> light-years (Gaia parallax ${g.plx_mas.toFixed(2)} mas)<br>`:"")+
+    (g.pmra!=null?`Proper motion <b>${Math.hypot(g.pmra,g.pmdec).toFixed(0)}</b> mas/yr<br>`:"")+(g.gmag!=null?`Gaia G magnitude <b>${g.gmag.toFixed(1)}</b><br>`:"")+`Gaia DR3 ${g.source}`}
+  
+  if(TR)h+=`<br>Predicted position drawn as a red circle (motion ${Math.hypot(TR.pmra,TR.pmdec).toFixed(0)} mas/yr from epoch ${TR.epoch}).`;
+  $("info").innerHTML=h}
+
+function uniFind(ra,dec){return U.find(u=>Math.abs(u.ra-ra)<0.03&&Math.abs(u.dec-dec)<0.03)}
+function specShape(u,wl){const t=u&&u.spec;
+  if(t==="cold")return 100*Math.exp(-Math.pow((wl-4.4)/0.9,2))+8;
+  if(t==="falling")return 140/Math.pow(wl,1.3);
+  if(t==="red")return 40+25*wl;
+  if(t==="mira")return 120*Math.exp(-Math.pow((wl-1.7)/1.1,2))+20;
+  return 100}
+function demoFrames(ra,dec){
+  const u=uniFind(+ra,+dec);
+  let seed=(Math.floor(Math.abs(+ra*1000+ +dec*100))%2147483646)+1;const rnd=()=>(seed=seed*16807%2147483647)/2147483647;
+  const N=240,AS=0.5,K=14,T0=60857,DT=40,mid=(K-1)/2; // 0.5 arcsec per pixel: a 2 arcmin field
+  const stars=[];for(let k=0;k<70;k++)stars.push({x:rnd()*N,y:rnd()*N,m:.2+rnd()*.8});
+  const out=[];
+  for(let k=0;k<K;k++){
+    const days=k*DT,yrs=(k-mid)*DT/365.25;
+    const c=document.createElement("canvas");c.width=c.height=N;const x=c.getContext("2d");
+    x.fillStyle="#000";x.fillRect(0,0,N,N);
+    const dot=(px,py,m,r)=>{const g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,`rgba(255,255,255,${m})`);g.addColorStop(1,"rgba(255,255,255,0)");x.fillStyle=g;x.fillRect(px-r,py-r,2*r,2*r)};
+    for(const st of stars)dot(st.x,st.y,st.m,2+st.m*4);
+    let tx=N/2,ty=N/2,tm=1,moves=false;
+    if(u&&u.kind==="mover"&&u.pm){tx=N/2-u.pm[0]/1000*yrs/AS;ty=N/2-u.pm[1]/1000*yrs/AS;moves=true}
+    else if(!u){tx=N*.2+k*9;ty=N*.65-k*6;moves=true}
+    if(u&&u.kind==="variable")tm=u.period?.25+.7*(.5+.5*Math.sin(2*Math.PI*days/u.period)):.9-.6*Math.exp(-Math.pow((days-420)/45,2))-.25*Math.exp(-Math.pow((days-150)/28,2));
+    dot(tx,ty,tm,3+tm*5);
+    for(let q=0;q<500;q++){x.fillStyle=`rgba(255,255,255,${rnd()*.12})`;x.fillRect(rnd()*N,rnd()*N,1,1)}
+    x.fillStyle="rgba(255,255,255,.5)";x.font="10px sans-serif";x.fillText("DEMO",6,14);
+    const wl=+(0.75+k*(4.25/(K-1))).toFixed(2);
+    out.push({mjd:T0+k*DT,detector:1+k%6,wavelength_um:wl,im:c,cx:.5,cy:.5,px:moves?tx/N:undefined,py:moves?ty/N:undefined,flux:specShape(u,wl)*tm});
+  }
+  return out}
+async function load(showTime){
+  const ra=$("ra").value.trim(),dec=$("dec").value.trim(),size=$("size").value.trim()||"0.1";
+  if(!isFinite(ra)||!isFinite(dec)||ra===""||dec===""||+dec<-90||+dec>90||+ra<0||+ra>360){
+    tab("time");say("Enter RA between 0 and 360 and Dec between -90 and 90, in decimal degrees.",true);return}
+  const id=++runId;stop();if(!showTime)tab("map");
+  try{history.replaceState(null,"",`?ra=${ra}&dec=${dec}&size=${size}`)}catch(e){}
+  fly(ra,dec,Math.max(0.05,+size*3));years();
+  GAIA=null;TR=null;
+  let pmra=num($("pmra").value),pmdec=num($("pmdec").value),ep=num($("ep").value)??2016;
+  status("Checking Gaia for distance and motion…");
+  
+  if(pmra==null&&GAIA&&GAIA.found&&GAIA.pmra!=null){pmra=GAIA.pmra;pmdec=GAIA.pmdec;ep=2016.0;
+    TR={ra:GAIA.ra,dec:GAIA.dec,pmra,pmdec,epoch:ep}}
+  else if(pmra!=null&&pmdec!=null)TR={ra:+ra,dec:+dec,pmra,pmdec,epoch:ep};
+  showInfo();
+  status("Searching the IRSA archive and downloading cutouts. This can take up to a minute.");
+  say("Searching the IRSA archive and downloading cutouts…");
+  let j,why="";try{j=await getFrames(ra,dec,+size,$("col").value.trim(),m=>{if(id===runId)status(m)})}
+  catch(e){why="NASA fetch failed: "+e.message}
+  if(id!==runId)return;
+  if(j&&(j.error||j.detail)){why=j.error||"Server error.";j=null}
+  if(j&&!j.count){why=j.note||`All ${j.total} matching images were too close to the detector edge.`;j=null}
+  let demo=false;
+  if(!j){demo=true;j={count:12,frames:demoFrames(ra,dec),collection:"demo"}}
+    ALL=j.frames;
+  const dets=[...new Set(ALL.map(f=>f.detector))].sort();
+  $("det").innerHTML='<option value="all">All detectors</option>'+dets.map(d=>`<option value="${d}">Detector ${d}</option>`).join("");
+  $("plate").classList.add("live");
+  filter();if(demo){if(showTime){play();tab("time");jstep(3)}else stop()}else{play();tab("time");jstep(3)}
+  if(demo)status("SIMULATED DEMO FRAMES, NOT REAL NASA DATA. The live SPHEREx download failed: "+why,true);
+  else status(`${j.count} real SPHEREx images loaded (${j.collection}). Use the Sky map tab to look around, or Long baseline for 2010–2024.`);
+}
+function filter(){
+  const d=$("det").value;F=d==="all"?ALL:ALL.filter(f=>String(f.detector)===d);
+  $("slider").max=Math.max(0,F.length-1);
+  const dt=f=>new Date((f.mjd-40587)*864e5).toISOString().slice(0,10);
+  $("d0").textContent=F.length?dt(F[0]):"";$("d1").textContent=F.length?dt(F[F.length-1]):"";
+  show(0)}
+function show(k){i=k;$("slider").value=k;render()}
+function step(d){if(F.length)show((i+d+F.length)%F.length)}
+const rate=()=>1600/(1+ +$("speed").value*1.6);
+function play(){stop();playing=true;timer=setInterval(()=>step(1),rate());$("pp").textContent="Pause"}
+function stop(){clearInterval(timer);timer=null;playing=false;$("pp").textContent="Play"}
+
+function gray(im,w,h){const c=document.createElement("canvas");c.width=w;c.height=h;const x=c.getContext("2d");x.drawImage(im,0,0,w,h);return x.getImageData(0,0,w,h).data}
+function lut(m,v){
+  if(m==="heat")return[Math.min(255,v*3),Math.max(0,Math.min(255,v*3-255)),Math.max(0,Math.min(255,v*3-510))];
+  if(m==="cool")return[v*.2,v*.9,255*Math.sqrt(v/255)];
+  return[v,v,v]}
+function render(){
+  if(!F.length)return;
+  const f=F[i],c=$("cv"),ctx=c.getContext("2d");
+  c.width=f.im.width;c.height=f.im.height;ctx.drawImage(f.im,0,0);
+  const d=ctx.getImageData(0,0,c.width,c.height),px=d.data;
+  const ref=$("diff").checked&&i>0?gray(F[0].im,c.width,c.height):null;
+  const g=100/$("con").value,inv=$("inv").checked,m=$("cmap").value;
+  for(let k=0;k<px.length;k+=4){
+    let v=px[k];if(ref)v=Math.min(255,Math.abs(v-ref[k])*2);
+    v=255*Math.pow(v/255,g);if(inv)v=255-v;
+    const t=lut(m,v);px[k]=t[0];px[k+1]=t[1];px[k+2]=t[2];px[k+3]=255}
+  ctx.putImageData(d,0,0);
+  if($("mk").checked){const W=c.width,H=c.height,lw=Math.max(1,W/160),r=Math.max(6,W/22);
+    ctx.lineWidth=lw;
+    if(f.cx!=null){const x=f.cx*W,y=f.cy*H,a=r*.6,b=r*.25; // fixed sky position: corner brackets
+      ctx.strokeStyle="rgba(80,200,255,.9)";ctx.beginPath();
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{ctx.moveTo(x+sx*a,y+sy*b);ctx.lineTo(x+sx*a,y+sy*a);ctx.lineTo(x+sx*b,y+sy*a)});ctx.stroke()}
+    if(f.px!=null){ctx.strokeStyle="#ff4d2e";ctx.beginPath();ctx.arc(f.px*W,f.py*H,r,0,7);ctx.stroke()}}
+  $("rDate").textContent=new Date((f.mjd-40587)*864e5).toISOString().slice(0,10);
+  $("rWl").textContent=f.wavelength_um?f.wavelength_um+" µm":"–";
+  $("rDet").textContent=f.detector??"–";
+  $("rFr").textContent=`${i+1} of ${F.length}`;
+  spectrum()}
+
+function spectrum(){
+  const c=$("sp"),x=c.getContext("2d"),W=c.width,H=c.height,P=34;
+  x.clearRect(0,0,W,H);
+  const pts=F.filter(f=>f.flux!=null&&f.wavelength_um);
+  x.font="20px sans-serif";x.fillStyle="#4a545e";
+  if(pts.length<2){x.fillText("Not enough measurements at the target",P,H/2);return}
+  const xs=pts.map(f=>f.wavelength_um),ys=pts.map(f=>f.flux);
+  const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),sy=y1>y0?y1-y0:1,sx=x1>x0?x1-x0:1;
+  const X=v=>P+(v-x0)/sx*(W-P-12),Y=v=>H-26-(v-y0)/sy*(H-44);
+  x.strokeStyle="#b9c0c6";x.beginPath();x.moveTo(P,8);x.lineTo(P,H-26);x.lineTo(W-8,H-26);x.stroke();
+  x.fillText(x0.toFixed(1)+" µm",P,H-4);x.textAlign="right";x.fillText(x1.toFixed(1)+" µm",W-8,H-4);x.textAlign="left";
+  x.fillText("MJy/sr",P+6,20);
+  pts.forEach(f=>{x.fillStyle=f===F[i]?"#ff4d2e":"#1c3fd0";x.beginPath();x.arc(X(f.wavelength_um),Y(f.flux),f===F[i]?7:4,0,7);x.fill()})}
+
+$("load").onclick=load;
+$("pp").onclick=()=>playing?stop():play();
+$("prev").onclick=()=>{stop();step(-1)};
+$("next").onclick=()=>{stop();step(1)};
+$("slider").oninput=e=>{stop();show(+e.target.value)};
+$("speed").oninput=()=>{if(playing)play()};
+$("det").onchange=filter;
+["cmap","con","inv","diff","mk"].forEach(id=>$(id).addEventListener("input",render));
+document.addEventListener("keydown",e=>{
+  if(/INPUT|SELECT/.test(document.activeElement.tagName)&&document.activeElement.type!=="range")return;
+  if(e.key===" "){e.preventDefault();$("pp").click()}
+  if(e.key==="ArrowRight"){stop();step(1)}
+  if(e.key==="ArrowLeft"){stop();step(-1)}});
+
+// ================= Universe 3D =================
+const U=[
+ {name:"Barnard's Star",ra:269.4521,dec:4.6934,ly:5.96,plx:547,type:"Red dwarf, the fastest-moving star in our sky",kind:"mover",pm:[-798.6,10328.1],ep:2000.0,size:0.2,spec:"falling",note:"It moves about the width of the full Moon in roughly 175 years."},
+ {name:"WISE 0855",ra:133.786245,dec:-7.244372,ly:7.43,plx:439,type:"Y-type brown dwarf, one of the coldest known (roughly −20 °C)",kind:"mover",pm:[-8100,700],ep:2014.0,size:0.1,spec:"cold",note:"Too faint and cold to see in visible light, it glows in the infrared, which is where SPHEREx looks."},
+ {name:"Epsilon Indi",ra:330.8402,dec:-56.7860,ly:11.87,plx:275,type:"Orange dwarf with two brown-dwarf companions (Ba and Bb)",kind:"mover",pm:[3966.4,-2536.2],ep:2000.0,size:0.1,spec:"falling",note:"A nearby star with a pair of brown dwarfs orbiting it."},
+ {name:"RW Aurigae",ra:76.957,dec:30.401,ly:500,apx:true,type:"Young T Tauri star whose light dips irregularly",kind:"variable",size:0.05,spec:"red",note:"It barely moves. Watch its brightness change from frame to frame instead. Distance is approximate."},
+ {name:"R Draconis",ra:248.173,dec:66.755,ly:1000,apx:true,type:"Mira-type variable (pulsating red giant, cycle of about 246 days)",kind:"variable",period:245.6,size:0.05,spec:"mira",note:"It swells and fades on a regular cycle. Distance is approximate."}];
+const rd=ly=>22*Math.log10(1+ly);
+U.forEach(u=>{const a=u.ra*Math.PI/180,d=u.dec*Math.PI/180,r=rd(u.ly);u.p=[r*Math.cos(d)*Math.cos(a),r*Math.cos(d)*Math.sin(a),r*Math.sin(d)]});
+let yaw=0.6,pitch=0.35,dist=170,fx=0,fy=0,fz=0,gx=0,gy=0,gz=0,gdist=170,sel=-1,auto=true,drag=null,mouse=null;
+const BG=(()=>{let sd=7;const r=()=>(sd=sd*16807%2147483647)/2147483647,o=[];
+  for(let k=0;k<420;k++){const a=r()*6.2832,z=r()*2-1,q=Math.sqrt(1-z*z);o.push([q*Math.cos(a),q*Math.sin(a),z,.25+r()*.75])}return o})();
+function rot(x,y,z){const cy=Math.cos(yaw),sy=Math.sin(yaw),cp=Math.cos(pitch),sp=Math.sin(pitch);
+  const x1=x*cy-y*sy,y1=x*sy+y*cy;return[x1,y1*cp+z*sp,-y1*sp+z*cp]}
+function proj(x,y,z,W,H){const r=rot(x-fx,y-fy,z-fz),dd=dist+r[1];if(dd<2)return null;const s=H*0.9/dd;return{x:W/2+r[0]*s,y:H/2-r[2]*s,s}}
+function uniSize(){const c=$("uni"),r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;if(!r.width)return;c.width=Math.round(r.width*d);c.height=Math.round(r.height*d)}
+window.addEventListener("resize",uniSize);
+function uniDraw(){
+  const c=$("uni"),x=c.getContext("2d"),W=c.width,H=c.height,d=Math.max(1,W/900);
+  const bg=x.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.7);bg.addColorStop(0,"#0b1224");bg.addColorStop(1,"#02030a");
+  x.fillStyle=bg;x.fillRect(0,0,W,H);
+  const sc=Math.max(W,H)*.75;
+  for(const b of BG){const r=rot(b[0],b[1],b[2]),px=W/2+r[0]*sc,py=H/2-r[2]*sc;if(px<0||px>W||py<0||py>H)continue;
+    x.fillStyle=`rgba(200,215,255,${b[3]*.7})`;x.fillRect(px,py,b[3]>.8?2*d:1.4*d,b[3]>.8?2*d:1.4*d)}
+  [10,100,1000].forEach(ly=>{const R=rd(ly);x.beginPath();let first=true,lab=null;
+    for(let k=0;k<=72;k++){const a=k/72*6.2832,p=proj(R*Math.cos(a),R*Math.sin(a),0,W,H);if(!p){first=true;continue}
+      if(first){x.moveTo(p.x,p.y);first=false}else x.lineTo(p.x,p.y);if(k===9)lab=p}
+    x.strokeStyle="rgba(120,150,205,.28)";x.lineWidth=1*d;x.stroke();
+    if(lab){x.fillStyle="rgba(140,165,210,.8)";x.font=`${11*d}px sans-serif`;x.fillText(ly+" light-years",lab.x+4,lab.y-3)}});
+  const e=proj(0,0,0,W,H);
+  if(e){const g=x.createRadialGradient(e.x,e.y,0,e.x,e.y,18*d);g.addColorStop(0,"rgba(90,170,255,.9)");g.addColorStop(1,"rgba(90,170,255,0)");
+    x.fillStyle=g;x.fillRect(e.x-18*d,e.y-18*d,36*d,36*d);x.fillStyle="#7fc0ff";x.beginPath();x.arc(e.x,e.y,4*d,0,7);x.fill();
+    x.fillStyle="#cfe6ff";x.font=`${12*d}px sans-serif`;x.fillText("Earth",e.x+8*d,e.y+4*d)}
+  let hover=-1,hd=22*d;
+  U.forEach((u,k)=>{u._s=proj(u.p[0],u.p[1],u.p[2],W,H);if(u._s&&mouse){const m=Math.hypot(u._s.x-mouse.x,u._s.y-mouse.y);if(m<hd){hd=m;hover=k}}});
+  if(sel>=0&&e&&U[sel]._s){const t=U[sel]._s;x.setLineDash([6*d,5*d]);x.strokeStyle="rgba(255,255,255,.55)";x.lineWidth=1.4*d;
+    x.beginPath();x.moveTo(e.x,e.y);x.lineTo(t.x,t.y);x.stroke();x.setLineDash([]);
+    const u=U[sel],lbl=`${u.apx?"≈ ":""}${u.ly.toLocaleString()} light-years`;
+    x.font=`bold ${13*d}px sans-serif`;x.fillStyle="#fff";x.fillText(lbl,(e.x+t.x)/2+8*d,(e.y+t.y)/2-8*d)}
+  U.forEach((u,k)=>{const p=u._s;if(!p)return;const col=u.kind==="mover"?"255,180,84":"124,240,200",on=k===sel,r=(on?7:5)*d;
+    const g=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r*3.2);g.addColorStop(0,`rgba(${col},.85)`);g.addColorStop(1,`rgba(${col},0)`);
+    x.fillStyle=g;x.fillRect(p.x-r*3.2,p.y-r*3.2,r*6.4,r*6.4);x.fillStyle=`rgb(${col})`;x.beginPath();x.arc(p.x,p.y,r*.6,0,7);x.fill();
+    if(on||k===hover){x.strokeStyle="#fff";x.lineWidth=1.5*d;x.beginPath();x.arc(p.x,p.y,r*1.5,0,7);x.stroke()}
+    x.fillStyle=on?"#fff":"rgba(235,240,255,.85)";x.font=`${(on?14:12)*d}px sans-serif`;x.fillText(u.name,p.x+r*2,p.y+4*d)});
+  c.style.cursor=hover>=0?"pointer":(drag?"grabbing":"grab")}
+function uniLoop(){requestAnimationFrame(uniLoop);
+  if(!$("p-uni").classList.contains("on"))return;
+  if(auto&&sel<0&&!drag)yaw+=0.0025;
+  const k=0.09;fx+=(gx-fx)*k;fy+=(gy-fy)*k;fz+=(gz-fz)*k;dist+=(gdist-dist)*k;
+  uniDraw()}
+function uniPick(e){const c=$("uni"),r=c.getBoundingClientRect(),mx=(e.clientX-r.left)*c.width/r.width,my=(e.clientY-r.top)*c.height/r.height;
+  let best=-1,bd=24*Math.max(1,c.width/900);U.forEach((u,k)=>{if(!u._s)return;const m=Math.hypot(u._s.x-mx,u._s.y-my);if(m<bd){bd=m;best=k}});return best}
+function uniSelect(k){sel=k;
+  document.querySelectorAll("#ubtn button").forEach(b=>b.classList.toggle("on",+b.dataset.u===k));
+  if(k<0){gx=gy=gz=0;gdist=170;auto=true;$("uinfo").innerHTML="<h3>Pick a target</h3>Click one of the glowing dots (or a button above).";trackDraw(null);return}
+  const u=U[k];[gx,gy,gz]=u.p;gdist=34;
+  const pmTxt=u.pm?`<b>${(Math.hypot(u.pm[0],u.pm[1])/1000).toFixed(2)}″</b> per year (${Math.hypot(u.pm[0],u.pm[1]).toFixed(0)} mas/yr)`:"very small, so this target is watched for changes in brightness instead";
+  $("uinfo").innerHTML=`<h3>${u.name}</h3>${u.type}<br>
+   Distance from Earth: <b>${u.apx?"≈ ":""}${u.ly.toLocaleString()}</b> light-years${u.plx?` (parallax ${u.plx} mas)`:""}<br>
+   Sky position: ${u.ra.toFixed(4)}°, ${u.dec.toFixed(4)}°<br>
+   Motion on the sky: ${pmTxt}<br>
+   <span class="note">${u.note}</span><br>
+   <button class="btn go" id="uopen" style="margin-top:10px">Open telescope view (SPHEREx time-lapse)</button>`;
+  trackDraw(u)}
+function trackDraw(u){const c=$("trk"),x=c.getContext("2d"),W=c.width,H=c.height;
+  x.fillStyle="#04060d";x.fillRect(0,0,W,H);x.font="22px sans-serif";x.fillStyle="#9fb0c4";
+  if(!u||!u.pm){x.fillText(u?"This target barely moves on the sky":"Select a target to see its path",24,H/2);return}
+  const ts=[];for(let t=-100;t<=100;t+=5)ts.push(t);
+  const X=t=>-u.pm[0]/1000*t,Y=t=>-u.pm[1]/1000*t;
+  const mx=Math.max(1e-6,Math.abs(X(100))),my=Math.max(1e-6,Math.abs(Y(100))),s=Math.min((W/2-70)/mx,(H/2-70)/my),cx=W/2,cy=H/2;
+  const pt=t=>[cx+X(t)*s,cy+Y(t)*s];
+  x.lineWidth=5;x.strokeStyle="#5aa9ff";x.beginPath();ts.filter(t=>t<=0).forEach((t,k)=>{const p=pt(t);k?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.stroke();
+  x.setLineDash([16,12]);x.strokeStyle="#ff9a3c";x.beginPath();ts.filter(t=>t>=0).forEach((t,k)=>{const p=pt(t);k?x.lineTo(p[0],p[1]):x.moveTo(p[0],p[1])});x.stroke();x.setLineDash([]);
+  [-100,-50,50,100].forEach(t=>{const p=pt(t);x.fillStyle=t<0?"#5aa9ff":"#ff9a3c";x.beginPath();x.arc(p[0],p[1],7,0,7);x.fill();
+    x.fillStyle="#dfe8f5";x.font="22px sans-serif";x.fillText(String(2026+t),p[0]+12,p[1]-10)});
+  x.fillStyle="#fff";x.beginPath();x.arc(cx,cy,10,0,7);x.fill();x.fillStyle="#fff";x.font="bold 22px sans-serif";x.fillText("today",cx+14,cy+24);
+  x.fillStyle="#9fb0c4";x.font="22px sans-serif";x.fillText("Path on the sky, 100 years back (blue) and forward (orange)",20,32);
+  x.fillText("N ↑   E ←",20,H-18);
+  const nice=[1,2,5,10,20,50,100,200,500,1000,2000,5000],L=nice.find(v=>v*s>=110)||nice[nice.length-1];
+  x.strokeStyle="#9fb0c4";x.lineWidth=3;x.beginPath();x.moveTo(W-30-L*s,H-30);x.lineTo(W-30,H-30);x.stroke();x.fillText(L+"″",W-30-L*s,H-40)}
+function openScope(u){$("ra").value=u.ra;$("dec").value=u.dec;$("size").value=u.size||0.1;
+  $("pmra").value=u.pm?u.pm[0]:"";$("pmdec").value=u.pm?u.pm[1]:"";$("ep").value=u.ep||2016.0;$("q").value=u.name;
+  tab("time");say("Loading telescope images…");load(true)}
+$("ubtn").innerHTML=U.map((u,k)=>`<button data-u="${k}">${u.name}</button>`).join("");
+$("ubtn").onclick=e=>{const k=e.target.dataset.u;if(k!=null)uniSelect(+k)};
+$("uinfo").onclick=e=>{if(e.target.id==="uopen"&&sel>=0)openScope(U[sel])};
+(()=>{const c=$("uni");
+  c.addEventListener("pointerdown",e=>{drag={x:e.clientX,y:e.clientY,moved:0,yaw0:yaw,pitch0:pitch};c.setPointerCapture(e.pointerId);auto=false});
+  c.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect();mouse={x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height};
+    if(drag){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.moved=Math.max(drag.moved,Math.hypot(dx,dy));yaw=drag.yaw0+dx*0.006;pitch=Math.max(-1.4,Math.min(1.4,drag.pitch0+dy*0.006))}});
+  c.addEventListener("pointerleave",()=>{mouse=null});
+  c.addEventListener("pointerup",e=>{if(drag&&drag.moved<5){const k=uniPick(e);uniSelect(k)}drag=null});
+  c.addEventListener("wheel",e=>{e.preventDefault();gdist=Math.max(8,Math.min(400,gdist*(e.deltaY>0?1.12:0.89)))},{passive:false});
+  c.addEventListener("dblclick",e=>{const k=uniPick(e);if(k>=0)openScope(U[k])})})();
+uniSize();trackDraw(null);uniLoop();
+fetch("/api/collections").then(r=>r.json()).then(j=>{$("cols").innerHTML=(j.collections||[]).map(c=>`<option value="${c}">`).join("")}).catch(()=>{});
+const q=new URLSearchParams(location.search);
+if(q.get("ra")){$("ra").value=q.get("ra");$("dec").value=q.get("dec");if(q.get("size"))$("size").value=q.get("size");load()}
+</script>
+</html>
